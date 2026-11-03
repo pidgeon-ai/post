@@ -1,0 +1,132 @@
+{
+  "about": "Test vectors for draft-pidgeon-post-00. Every string is exact: a signature covers the bytes as given. Seeds are 32-byte Ed25519 private keys (RFC 8032). Generated from the running implementation; published at https://github.com/pidgeon-ai/post.",
+  "keys": {
+    "sender": {
+      "domain": "acme.example",
+      "kid": "2026-10-22.1",
+      "seed": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "public_key_b64url": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+    },
+    "recipient": {
+      "domain": "supplier.example",
+      "kid": "2026-10-01.1",
+      "seed": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "public_key_hex": "29acbae141bccaf0b22e1a94d34d0bc7361e526d0bfe12c89794bc9322966dd7",
+      "public_key_b64url": "Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc"
+    }
+  },
+  "discovery": {
+    "txt_name": "_post.acme.example",
+    "txt_value": "v=post0; id=ae068fffefd849fa",
+    "policy_url": "https://post.acme.example/.well-known/post.json",
+    "policy_body": "{\n  \"v\": \"post0\",\n  \"max_age\": 86400,\n  \"endpoint\": \"https://post.pidgeon.ai/v0\",\n  \"keys\": [\n    {\n      \"kid\": \"2026-10-22.1\",\n      \"alg\": \"Ed25519\",\n      \"pub\": \"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg\",\n      \"not_after\": \"2027-10-22T00:00:00Z\"\n    }\n  ],\n  \"first_contact\": {\n    \"accept\": [\n      \"known\"\n    ]\n  },\n  \"identity\": {\n    \"issuer\": \"https://post.acme.example\"\n  },\n  \"features\": []\n}\n",
+    "policy_id": "ae068fffefd849fa",
+    "policy_id_rule": "first 16 hex characters of SHA-256 over policy_body (a host that does not hold the DNS may use any fixed id)",
+    "recipient_policy_body": "{\n  \"v\": \"post0\",\n  \"max_age\": 86400,\n  \"endpoint\": \"https://post.pidgeon.ai/v0\",\n  \"keys\": [\n    {\n      \"kid\": \"2026-10-01.1\",\n      \"alg\": \"Ed25519\",\n      \"pub\": \"Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc\",\n      \"not_after\": \"2027-10-22T00:00:00Z\"\n    }\n  ],\n  \"first_contact\": {\n    \"accept\": [\n      \"known\"\n    ]\n  },\n  \"identity\": {\n    \"issuer\": \"https://post.supplier.example\"\n  },\n  \"features\": []\n}\n"
+  },
+  "envelope": {
+    "message": "{\"v\":\"post0\",\"id\":\"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b\",\"thread\":{\"id\":\"2b8e6f10-3c4d-4a5b-8c9d-0e1f2a3b4c5d\"},\"sender\":{\"address\":\"billing-agent@acme.example\",\"kind\":\"agent\",\"on_behalf_of\":\"Acme Ltd\"},\"to\":[\"ap@supplier.example\"],\"cc\":[],\"created_at\":\"2026-10-22T14:03:11Z\",\"subject\":\"Invoice INV-2026-0418\",\"parts\":[{\"role\":\"text\",\"type\":\"text/plain\",\"body\":\"Hello, our invoice for October is attached.\\n\\nAcme Ltd\"},{\"role\":\"data\",\"schema\":\"https://schema.org/Invoice\",\"body\":{\"identifier\":\"INV-2026-0418\",\"totalPaymentDue\":{\"price\":1240.5,\"priceCurrency\":\"EUR\"}}}]}",
+    "message_sha256": "1cc77018b70833dd109ad6634957f048cc2e677d42a6fc8003573eac3904c3ac",
+    "message_sig_b64url": "X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhrGD16ENe6mp2Lq_14fCHTBg",
+    "header_value": "v=post0; d=acme.example; k=2026-10-22.1; s=X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhrGD16ENe6mp2L q_14fCHTBg; m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQyZTNmNGE1YiIs InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNGM1ZCJ9LCJz ZW5kZXIiOnsiYWRkcmVzcyI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwia2luZCI6ImFn ZW50Iiwib25fYmVoYWxmX29mIjoiQWNtZSBMdGQifSwidG8iOlsiYXBAc3VwcGxpZXIuZXhhbXBs ZSJdLCJjYyI6W10sImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTIyVDE0OjAzOjExWiIsInN1YmplY3Qi OiJJbnZvaWNlIElOVi0yMDI2LTA0MTgiLCJwYXJ0cyI6W3sicm9sZSI6InRleHQiLCJ0eXBlIjoi dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZXIgaXMgYXR0 YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dHBzOi8vc2No ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMDQxOCIsInRv dGFsUGF5bWVudER1ZSI6eyJwcmljZSI6MTI0MC41LCJwcmljZUN1cnJlbmN5IjoiRVVSIn19fV19"
+  },
+  "declaration": {
+    "agent": {
+      "Agent-of": "\"Acme Ltd\" <agents+k7m2p9q4rs@pidgeon.email>",
+      "Agent-attribution": "eyJ2IjoxLCJraW5kIjoiYWdlbnQiLCJvbl9iZWhhbGZfb2YiOiJBY21lIEx0ZCIsInBsYXRmb3JtIjoicGlkZ2Vvbi5haSIsInZlcmlmeSI6Imh0dHBzOi8vcGlkZ2Vvbi5haS92ZXJpZnkvcTJWMGFYTjBMWFpsWTNSdmNpMHdNUSJ9",
+      "AI-Disclosure": "mode=ai-originated"
+    },
+    "agent_attribution_json": "{\"v\":1,\"kind\":\"agent\",\"on_behalf_of\":\"Acme Ltd\",\"platform\":\"pidgeon.ai\",\"verify\":\"https://pidgeon.ai/verify/q2V0aXN0LXZlY3Rvci0wMQ\"}",
+    "service": {
+      "Agent-of": "\"Acme Ltd\" <agents+k7m2p9q4rs@pidgeon.email>",
+      "Agent-attribution": "eyJ2IjoxLCJraW5kIjoic2VydmljZSIsIm9uX2JlaGFsZl9vZiI6IkFjbWUgTHRkIiwicGxhdGZvcm0iOiJwaWRnZW9uLmFpIiwidmVyaWZ5IjoiaHR0cHM6Ly9waWRnZW9uLmFpL3ZlcmlmeS9xMlYwYVhOMExYWmxZM1J2Y2kwd01RIn0=",
+      "AI-Disclosure": "mode=machine-generated"
+    },
+    "person_reviewing_agent_draft": {
+      "AI-Disclosure": "mode=ai-originated, reviewed-by=\"person\""
+    },
+    "alias": "agents+k7m2p9q4rs@pidgeon.email"
+  },
+  "dkim": {
+    "record_name": "spec-vector._domainkey.pidgeon.email",
+    "record_value": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3psffalJyYCWMhXZYhQMcYhjOvK9xs+xSt0j0nvKzhe8WEH/GT2yi2wxYHUDA5g8TV0/P6YVqc8EUrDxFTuI/B7Pfn8qwYO9JZC8Ue5jsn8KJNtfDPOy7mZl53J15alindPHW4379zLne/52mceniWYsfrVPZ4wPZIejVxycpjrJdz2V06y3QOwgX/XROLR8aT7hNdICtZmw5+j0+aJoCHIBItsVOpQ7DjUfj+FLOfdkhLxOyuAQMqG8ThYg8KrGyA9r8afjrxyLio7IK29cDcJEBG/5p+Dg/5EM+uUqBVpm8cd09lHAPT/r2TxVAHkrMTbhlXCV5Rud8R1psMQBbQIDAQAB",
+    "signed_headers": [
+      "From",
+      "To",
+      "Cc",
+      "Subject",
+      "MIME-Version",
+      "Content-Type",
+      "Agent-of",
+      "Agent-attribution",
+      "AI-Disclosure"
+    ],
+    "sign_time": "2026-10-22T14:03:11Z",
+    "message": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pidgeon.email;\r\n h=AI-Disclosure: Agent-attribution: Agent-of: Content-Type: MIME-Version:\r\n Subject: To: From; q=dns/txt; s=spec-vector; t=1792677791;\r\n bh=h4aW45H/PviD6Wxz3VKF+uGLK4NFcHTSrYVus1v7334=;\r\n b=e6GmpfzNvJbAiYzBJIVI6G7/3Qmaen8/fAjrM5C1lI/QSlww4/VgInVTkj0rJjjuegdTEQeiN\r\n z4JwVvPjmF5WJbOTufF5rPrlDt8unqlIKgs8AZdOWOFJkWEQI5SaWcgjloveOmyfimfhuGIvjrQ\r\n ZLZ5S9tDv3ionWQJW8U+At3RgGdDGQs4its6InpU0/XBeeNyRlrtT9wBaAMBWbxtDqurgBU1ovJ\r\n vD8jeqcVcIDCSAZb1dzONKcGtkYq8vf0Bcsv3LqggaxxWCRDR1D0FOcSJ63b98xDrcsq58846mz\r\n 8I3FzoQl942UjeOTNJ5cw/CZdk4uQ5b7uSJh7NjWStrg==\r\nFrom: Acme Billing <billing-agent@acme.example>\r\nTo: ap@supplier.example\r\nSubject: Invoice INV-2026-0418\r\nDate: Thu, 22 Oct 2026 14:03:11 +0000\r\nMessage-ID: <7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b@acme.example>\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 7bit\r\nAgent-of: \"Acme Ltd\" <agents+k7m2p9q4rs@pidgeon.email>\r\nAgent-attribution: eyJ2IjoxLCJraW5kIjoiYWdlbnQiLCJvbl9iZWhhbGZfb2YiOiJBY21lIEx0ZCIsInBsYXRmb3JtIjoicGlkZ2Vvbi5haSIsInZlcmlmeSI6Imh0dHBzOi8vcGlkZ2Vvbi5haS92ZXJpZnkvcTJWMGFYTjBMWFpsWTNSdmNpMHdNUSJ9\r\nAI-Disclosure: mode=ai-originated\r\nPost-Envelope: v=post0; d=acme.example; k=2026-10-22.1;\r\n s=X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhrGD16ENe6mp2L\r\n q_14fCHTBg;\r\n m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQyZTNmNGE1YiIs\r\n InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNGM1ZCJ9LCJz\r\n ZW5kZXIiOnsiYWRkcmVzcyI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwia2luZCI6ImFn\r\n ZW50Iiwib25fYmVoYWxmX29mIjoiQWNtZSBMdGQifSwidG8iOlsiYXBAc3VwcGxpZXIuZXhhbXBs\r\n ZSJdLCJjYyI6W10sImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTIyVDE0OjAzOjExWiIsInN1YmplY3Qi\r\n OiJJbnZvaWNlIElOVi0yMDI2LTA0MTgiLCJwYXJ0cyI6W3sicm9sZSI6InRleHQiLCJ0eXBlIjoi\r\n dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZXIgaXMgYXR0\r\n YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dHBzOi8vc2No\r\n ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMDQxOCIsInRv\r\n dGFsUGF5bWVudER1ZSI6eyJwcmljZSI6MTI0MC41LCJwcmljZUN1cnJlbmN5IjoiRVVSIn19fV19\r\n\r\nHello, our invoice for October is attached.\r\n\r\nAcme Ltd\r\n",
+    "expected": "pass"
+  },
+  "receipt": {
+    "status": "specified; not emitted by any implementation yet",
+    "bytes": "{\"v\":\"post0\",\"message_id\":\"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b\",\"from_domain\":\"acme.example\",\"recipient\":\"ap@supplier.example\",\"kind\":\"delivered\",\"at\":\"2026-10-22T14:03:13Z\"}",
+    "kid": "2026-10-01.1",
+    "sig_b64url": "EoSooccSPTmZ4ca_n0cnEnnN8NCUTZj3fXoTITIgMwaFSEni-zVAULqzLwNX3DDhMmaymPDz6jvbswUU4J07Dw",
+    "wire": {
+      "v": "post0",
+      "d": "supplier.example",
+      "kid": "2026-10-01.1",
+      "receipt": "eyJ2IjoicG9zdDAiLCJtZXNzYWdlX2lkIjoiN2YxYzJhOWUtNGIzZC00ZTVmLTlhOGItMGMxZDJlM2Y0YTViIiwiZnJvbV9kb21haW4iOiJhY21lLmV4YW1wbGUiLCJyZWNpcGllbnQiOiJhcEBzdXBwbGllci5leGFtcGxlIiwia2luZCI6ImRlbGl2ZXJlZCIsImF0IjoiMjAyNi0xMC0yMlQxNDowMzoxM1oifQ",
+      "sig": "EoSooccSPTmZ4ca_n0cnEnnN8NCUTZj3fXoTITIgMwaFSEni-zVAULqzLwNX3DDhMmaymPDz6jvbswUU4J07Dw"
+    }
+  },
+  "card": {
+    "lookup": "https://post.acme.example/.well-known/post/card?address=billing-agent@acme.example",
+    "payload": {
+      "iss": "https://post.acme.example",
+      "sub": "id_7Hq2Mx9Kp4Rt",
+      "iat": 1792677791,
+      "exp": 1792764191,
+      "v": "post0",
+      "address": "billing-agent@acme.example",
+      "kind": "agent",
+      "on_behalf_of": "Acme Ltd",
+      "operator": {
+        "domain": "acme.example",
+        "verified": true
+      },
+      "created_at": "2026-09-01T09:00:00Z",
+      "keys": [
+        {
+          "type": "post",
+          "domain": "acme.example",
+          "kid": "2026-10-22.1"
+        },
+        {
+          "type": "dkim",
+          "domain": "pidgeon.email",
+          "selector": "spec-vector"
+        }
+      ],
+      "reputation": {
+        "standing": "established",
+        "since": "2026-09"
+      },
+      "url": "https://pidgeon.ai/api/v1/cards/id_7Hq2Mx9Kp4Rt"
+    },
+    "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWNhcmQrand0Iiwia2lkIjoiMjAyNi0xMC0yMi4xIn0.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwic3ViIjoiaWRfN0hxMk14OUtwNFJ0IiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTI3NjQxOTEsInYiOiJwb3N0MCIsImFkZHJlc3MiOiJiaWxsaW5nLWFnZW50QGFjbWUuZXhhbXBsZSIsImtpbmQiOiJhZ2VudCIsIm9uX2JlaGFsZl9vZiI6IkFjbWUgTHRkIiwib3BlcmF0b3IiOnsiZG9tYWluIjoiYWNtZS5leGFtcGxlIiwidmVyaWZpZWQiOnRydWV9LCJjcmVhdGVkX2F0IjoiMjAyNi0wOS0wMVQwOTowMDowMFoiLCJrZXlzIjpbeyJ0eXBlIjoicG9zdCIsImRvbWFpbiI6ImFjbWUuZXhhbXBsZSIsImtpZCI6IjIwMjYtMTAtMjIuMSJ9LHsidHlwZSI6ImRraW0iLCJkb21haW4iOiJwaWRnZW9uLmVtYWlsIiwic2VsZWN0b3IiOiJzcGVjLXZlY3RvciJ9XSwicmVwdXRhdGlvbiI6eyJzdGFuZGluZyI6ImVzdGFibGlzaGVkIiwic2luY2UiOiIyMDI2LTA5In0sInVybCI6Imh0dHBzOi8vcGlkZ2Vvbi5haS9hcGkvdjEvY2FyZHMvaWRfN0hxMk14OUtwNFJ0In0.Sj3Z4oJJhmkGRzPoCuBr9DO_yF1Pw1mjVhYtdQMsFPen9W71JfRRN4lIld9VfhvWW-fi7bBP_c-mcNLw0i0bDw"
+  },
+  "refusals": [
+    {
+      "name": "envelope-one-byte-changed",
+      "note": "envelope.message with 1240.5 written 1240.50: equal as JSON, different bytes. message_sig_b64url must not verify",
+      "message": "{\"v\":\"post0\",\"id\":\"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b\",\"thread\":{\"id\":\"2b8e6f10-3c4d-4a5b-8c9d-0e1f2a3b4c5d\"},\"sender\":{\"address\":\"billing-agent@acme.example\",\"kind\":\"agent\",\"on_behalf_of\":\"Acme Ltd\"},\"to\":[\"ap@supplier.example\"],\"cc\":[],\"created_at\":\"2026-10-22T14:03:11Z\",\"subject\":\"Invoice INV-2026-0418\",\"parts\":[{\"role\":\"text\",\"type\":\"text/plain\",\"body\":\"Hello, our invoice for October is attached.\\n\\nAcme Ltd\"},{\"role\":\"data\",\"schema\":\"https://schema.org/Invoice\",\"body\":{\"identifier\":\"INV-2026-0418\",\"totalPaymentDue\":{\"price\":1240.50,\"priceCurrency\":\"EUR\"}}}]}",
+      "valid": false
+    },
+    {
+      "name": "envelope-wrong-domain",
+      "note": "header_value with d=supplier.example: the message verifies under neither the From domain (d= mismatch) nor supplier.example's key",
+      "header_value": "v=post0; d=supplier.example; k=2026-10-22.1; s=X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhrGD16ENe6mp2L q_14fCHTBg; m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQyZTNmNGE1YiIs InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNGM1ZCJ9LCJz ZW5kZXIiOnsiYWRkcmVzcyI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwia2luZCI6ImFn ZW50Iiwib25fYmVoYWxmX29mIjoiQWNtZSBMdGQifSwidG8iOlsiYXBAc3VwcGxpZXIuZXhhbXBs ZSJdLCJjYyI6W10sImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTIyVDE0OjAzOjExWiIsInN1YmplY3Qi OiJJbnZvaWNlIElOVi0yMDI2LTA0MTgiLCJwYXJ0cyI6W3sicm9sZSI6InRleHQiLCJ0eXBlIjoi dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZXIgaXMgYXR0 YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dHBzOi8vc2No ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMDQxOCIsInRv dGFsUGF5bWVudER1ZSI6eyJwcmljZSI6MTI0MC41LCJwcmljZUN1cnJlbmN5IjoiRVVSIn19fV19",
+      "valid": false
+    }
+  ]
+}

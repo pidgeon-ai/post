@@ -1,0 +1,3387 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Post: Signed, Verifiable Identity for Software Agents That Send Email</title>
+<meta content="Patrick de Castro Neuhaus" name="author">
+<meta content="
+       Software agents now send email, and a recipient has no reliable way to
+    tell that a message was written by software, on whose behalf it was sent,
+    or whether the domain it claims to come from stands behind it. This
+    document specifies Post, version 0: an agent declaration carried in
+    ordinary mail and authenticated by an aligned DKIM signature; a per-domain
+    Ed25519 key discovered through DNS and HTTPS; a signed copy of the message
+    in a header field, which a receiver verifies against that key; typed,
+    structured data carried beside the human text; and the format of signed
+    receipts; and a signed card per agent address. Everything specified
+    here, except the signed receipt, is implemented and running in
+    production; the rest is listed as future work. 
+    " name="description">
+<meta content="xml2rfc 3.35.0" name="generator">
+<meta content="email" name="keyword">
+<meta content="AI agents" name="keyword">
+<meta content="attribution" name="keyword">
+<meta content="Ed25519" name="keyword">
+<meta content="draft-pidgeon-post-00" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.35.0
+    Python 3.14.7
+    ConfigArgParse 1.9.0
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.3
+    natsort 8.4.0
+    platformdirs 4.14.3
+    pycountry 26.2.16
+    PyYAML 6.0.3
+    requests 2.34.2
+    wcwidth 0.9.4
+-->
+<link href="draft-pidgeon-post-00.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+sub,
+sup {
+ white-space: nowrap;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+  table {
+    page-break-inside: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">Post: Signed Agent Identity for Mail</td>
+<td class="right">November 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">de Castro Neuhaus</td>
+<td class="center">Expires 7 May 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-pidgeon-post-00</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-11-03" class="published">3 November 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Experimental</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-05-07">7 May 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">P. de Castro Neuhaus</div>
+<div class="org">Pidgeon</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Post: Signed, Verifiable Identity for Software Agents That Send Email</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">Software agents now send email, and a recipient has no reliable way to
+    tell that a message was written by software, on whose behalf it was sent,
+    or whether the domain it claims to come from stands behind it. This
+    document specifies Post, version 0: an agent declaration carried in
+    ordinary mail and authenticated by an aligned DKIM signature; a per-domain
+    Ed25519 key discovered through DNS and HTTPS; a signed copy of the message
+    in a header field, which a receiver verifies against that key; typed,
+    structured data carried beside the human text; and the format of signed
+    receipts; and a signed card per agent address. Everything specified
+    here, except the signed receipt, is implemented and running in
+    production; the rest is listed as future work.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-draft">
+<a href="#name-about-this-draft" class="section-name selfRef">About This Draft</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">This draft is written for the IETF 127 hackathon (14-15 November
+    2026). Its source, the test vectors in machine-readable form and the
+    issue tracker are at https://github.com/pidgeon-ai/post.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 7 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-scope-of-version-0" class="internal xref">Scope of Version 0</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-conventions-and-terminology" class="internal xref">Conventions and Terminology</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-the-agent-declaration" class="internal xref">The Agent Declaration</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1">
+                <p id="section-toc.1-1.2.2.1.1"><a href="#section-2.1" class="auto internal xref">2.1</a>.  <a href="#name-fields" class="internal xref">Fields</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2">
+                <p id="section-toc.1-1.2.2.2.1"><a href="#section-2.2" class="auto internal xref">2.2</a>.  <a href="#name-authentication-by-dkim" class="internal xref">Authentication by DKIM</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.3">
+                <p id="section-toc.1-1.2.2.3.1"><a href="#section-2.3" class="auto internal xref">2.3</a>.  <a href="#name-the-verify-link" class="internal xref">The Verify Link</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.4">
+                <p id="section-toc.1-1.2.2.4.1"><a href="#section-2.4" class="auto internal xref">2.4</a>.  <a href="#name-what-a-receiver-may-trust" class="internal xref">What a Receiver May Trust</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-domain-keys-and-the-agent-c" class="internal xref">Domain Keys and the Agent Card</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-the-dns-record" class="internal xref">The DNS Record</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-the-policy" class="internal xref">The Policy</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-caching-rotation-and-refetc" class="internal xref">Caching, Rotation and Refetching</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-signatures" class="internal xref">Signatures</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5">
+                <p id="section-toc.1-1.3.2.5.1"><a href="#section-3.5" class="auto internal xref">3.5</a>.  <a href="#name-the-agent-card" class="internal xref">The Agent Card</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5.2.1">
+                    <p id="section-toc.1-1.3.2.5.2.1.1"><a href="#section-3.5.1" class="auto internal xref">3.5.1</a>.  <a href="#name-format-and-signature" class="internal xref">Format and Signature</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5.2.2">
+                    <p id="section-toc.1-1.3.2.5.2.2.1"><a href="#section-3.5.2" class="auto internal xref">3.5.2</a>.  <a href="#name-discovery-and-checking" class="internal xref">Discovery and Checking</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-verification" class="internal xref">Verification</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-the-declaration" class="internal xref">The Declaration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-the-envelope" class="internal xref">The Envelope</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-combining-the-outcomes" class="internal xref">Combining the Outcomes</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-between-post-endpoints" class="internal xref">Between Post Endpoints</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-knowing-the-other-end-speak" class="internal xref">Knowing the Other End Speaks Post</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-the-signed-envelope" class="internal xref">The Signed Envelope</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.1">
+                    <p id="section-toc.1-1.5.2.2.2.1.1"><a href="#section-5.2.1" class="auto internal xref">5.2.1</a>.  <a href="#name-the-message" class="internal xref">The Message</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.2">
+                    <p id="section-toc.1-1.5.2.2.2.2.1"><a href="#section-5.2.2" class="auto internal xref">5.2.2</a>.  <a href="#name-the-post-envelope-header-fi" class="internal xref">The Post-Envelope Header Field</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2.2.3">
+                    <p id="section-toc.1-1.5.2.2.2.3.1"><a href="#section-5.2.3" class="auto internal xref">5.2.3</a>.  <a href="#name-typed-data-in-mime" class="internal xref">Typed Data in MIME</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-delivery" class="internal xref">Delivery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
+                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-receipts" class="internal xref">Receipts</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4.2.1">
+                    <p id="section-toc.1-1.5.2.4.2.1.1"><a href="#section-5.4.1" class="auto internal xref">5.4.1</a>.  <a href="#name-the-receipt" class="internal xref">The Receipt</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4.2.2">
+                    <p id="section-toc.1-1.5.2.4.2.2.1"><a href="#section-5.4.2" class="auto internal xref">5.4.2</a>.  <a href="#name-carrying-a-receipt" class="internal xref">Carrying a Receipt</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-names-on-the-wire" class="internal xref">Names on the Wire</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-implementation-status" class="internal xref">Implementation Status</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-a-signature-is-not-a-truth" class="internal xref">A Signature Is Not a Truth</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-forged-declarations" class="internal xref">Forged Declarations</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-replay" class="internal xref">Replay</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.4">
+                <p id="section-toc.1-1.8.2.4.1"><a href="#section-8.4" class="auto internal xref">8.4</a>.  <a href="#name-key-compromise-and-revocati" class="internal xref">Key Compromise and Revocation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.5">
+                <p id="section-toc.1-1.8.2.5.1"><a href="#section-8.5" class="auto internal xref">8.5</a>.  <a href="#name-fetching-policies" class="internal xref">Fetching Policies</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.6">
+                <p id="section-toc.1-1.8.2.6.1"><a href="#section-8.6" class="auto internal xref">8.6</a>.  <a href="#name-content-written-for-people-" class="internal xref">Content Written for People, Read by Software</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.7">
+                <p id="section-toc.1-1.8.2.7.1"><a href="#section-8.7" class="auto internal xref">8.7</a>.  <a href="#name-signature-malleability" class="internal xref">Signature Malleability</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-message-header-fields" class="internal xref">Message Header Fields</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-well-known-uri" class="internal xref">Well-Known URI</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.3">
+                <p id="section-toc.1-1.10.2.3.1"><a href="#section-10.3" class="auto internal xref">10.3</a>.  <a href="#name-media-type" class="internal xref">Media Type</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.4">
+                <p id="section-toc.1-1.10.2.4.1"><a href="#section-10.4" class="auto internal xref">10.4</a>.  <a href="#name-underscored-dns-node-name" class="internal xref">Underscored DNS Node Name</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.5">
+                <p id="section-toc.1-1.10.2.5.1"><a href="#section-10.5" class="auto internal xref">10.5</a>.  <a href="#name-agent-attribution-members" class="internal xref">Agent-attribution Members</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-future-work" class="internal xref">Future Work</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-notes-for-a-second-implemen" class="internal xref">Notes for a Second Implementation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-ed25519-vectors" class="internal xref">Ed25519 Vectors</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref">Appendix D</a>.  <a href="#name-test-vectors" class="internal xref">Test Vectors</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#appendix-D.1" class="auto internal xref">D.1</a>.  <a href="#name-keys" class="internal xref">Keys</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#appendix-D.2" class="auto internal xref">D.2</a>.  <a href="#name-discovery" class="internal xref">Discovery</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.3">
+                <p id="section-toc.1-1.15.2.3.1"><a href="#appendix-D.3" class="auto internal xref">D.3</a>.  <a href="#name-the-signed-message" class="internal xref">The Signed Message</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.4">
+                <p id="section-toc.1-1.15.2.4.1"><a href="#appendix-D.4" class="auto internal xref">D.4</a>.  <a href="#name-the-agent-declaration-2" class="internal xref">The Agent Declaration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.5">
+                <p id="section-toc.1-1.15.2.5.1"><a href="#appendix-D.5" class="auto internal xref">D.5</a>.  <a href="#name-the-agent-card-2" class="internal xref">The Agent Card</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.6">
+                <p id="section-toc.1-1.15.2.6.1"><a href="#appendix-D.6" class="auto internal xref">D.6</a>.  <a href="#name-a-signed-receipt" class="internal xref">A Signed Receipt</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-open-questions" class="internal xref">Open Questions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="intro">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">An email message written by a software agent looks like any other. A
+  recipient, human or software, cannot tell from the message whether a person
+  or a program wrote it, who is responsible for the program, or whether the
+  claims in the message are the sending domain's or a forger's. DKIM
+  <span>[<a href="#RFC6376" class="cite xref">RFC6376</a>]</span> and DMARC <span>[<a href="#RFC9989" class="cite xref">RFC9989</a>]</span> say that a
+  domain handled a message; they say nothing about what kind of sender wrote
+  it or for whom.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">Two individual drafts propose header fields for part of this: "Agent
+  Attribution Header Fields" <span>[<a href="#I-D.chuang-agent-attribution-header-fields" class="cite xref">I-D.chuang-agent-attribution-header-fields</a>]</span>
+  defines Agent-of and Agent-attribution, and the "AI Content Disclosure
+  Header" <span>[<a href="#I-D.abaris-aicdh" class="cite xref">I-D.abaris-aicdh</a>]</span> defines AI-Disclosure for HTTP.
+  Work on agent identity in the WIMSE working group
+  (<span>[<a href="#I-D.ietf-wimse-arch" class="cite xref">I-D.ietf-wimse-arch</a>]</span>, <span>[<a href="#I-D.ietf-wimse-aims" class="cite xref">I-D.ietf-wimse-aims</a>]</span>)
+  addresses workloads that call each other over HTTP, not mail.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">Post builds on the first two and adds what a recipient needs to rely on
+  them:<a href="#section-1-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1-4">
+    <li id="section-1-4.1">An agent declaration, using those fields, that a sender emits and a
+    receiver may trust only under a passing, aligned DKIM signature
+    (<a href="#declaration" class="auto internal xref">Section 2</a>).<a href="#section-1-4.1" class="pilcrow">¶</a>
+</li>
+        <li id="section-1-4.2">A signing key per domain, discovered from DNS and HTTPS in the manner
+    of MTA-STS <span>[<a href="#RFC8461" class="cite xref">RFC8461</a>]</span> (<a href="#discovery" class="auto internal xref">Section 3</a>), and a
+    signed card per agent address
+    (<a href="#card" class="auto internal xref">Section 3.5</a>).<a href="#section-1-4.2" class="pilcrow">¶</a>
+</li>
+        <li id="section-1-4.3">A verification procedure with defined outcomes
+    (<a href="#verification" class="auto internal xref">Section 4</a>).<a href="#section-1-4.3" class="pilcrow">¶</a>
+</li>
+        <li id="section-1-4.4">Between two endpoints that both implement Post: a signed copy of
+    the message (the "envelope"), carried in a header field, which binds the
+    declared sender to the From address, the recipients, the text, any
+    structured data and every attachment (<a href="#envelope" class="auto internal xref">Section 5.2</a>); typed
+    data; and receipts (<a href="#transport" class="auto internal xref">Section 5</a>).<a href="#section-1-4.4" class="pilcrow">¶</a>
+</li>
+      </ol>
+<p id="section-1-5">Nothing here asks a recipient to change mail software. A receiver that
+  implements none of it sees ordinary mail.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<div id="scope">
+<section id="section-1.1">
+        <h3 id="name-scope-of-version-0">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-scope-of-version-0" class="section-name selfRef">Scope of Version 0</a>
+        </h3>
+<p id="section-1.1-1">This version specifies only what is implemented, plus the receipt
+    format. In particular, it does not specify delivery over HTTPS between
+    hosts, first-contact policy, end-to-end encryption or a client protocol;
+    see <a href="#future" class="auto internal xref">Appendix A</a>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="terms">
+<section id="section-1.2">
+        <h3 id="name-conventions-and-terminology">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-conventions-and-terminology" class="section-name selfRef">Conventions and Terminology</a>
+        </h3>
+<p id="section-1.2-1">The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+    "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+    "OPTIONAL" in this document are to be interpreted as described in BCP 14
+    <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when,
+    they appear in all capitals, as shown here.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-1.2-2">
+          <dt id="section-1.2-2.1">Agent:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.2">Software that writes and sends messages, typically driven by a
+      language model, on behalf of a person or an organisation.<a href="#section-1.2-2.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.2-2.3">Sender kind:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.4">One of "person", "agent" or "service" (software that is not an
+      agent, such as a workflow or an application). No other value is
+      defined.<a href="#section-1.2-2.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.2-2.5">On behalf of:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.6">A display string naming the party responsible for the sender, such
+      as an organisation's name or its domain.<a href="#section-1.2-2.6" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.2-2.7">Signing domain:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.8">A domain that publishes a Post policy with at least one key
+      (<a href="#discovery" class="auto internal xref">Section 3</a>) and signs envelopes for its addresses.<a href="#section-1.2-2.8" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.2-2.9">Host:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.10">The operator of a signing domain's mail service. A host may serve
+      many domains.<a href="#section-1.2-2.10" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.2-2.11">Receiver:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.12">Any party that checks a message: a receiving mail system, a mail
+      client, or the agent that reads the message.<a href="#section-1.2-2.12" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-1.2-2.13">Endpoint:</dt>
+          <dd style="margin-left: 1.5em" id="section-1.2-2.14">A sender or receiver that implements this document.<a href="#section-1.2-2.14" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-1.2-3">base64url is <span>[<a href="#RFC4648" class="cite xref">RFC4648</a>]</span> Section 5 without padding.
+    base64 is <span>[<a href="#RFC4648" class="cite xref">RFC4648</a>]</span> Section 4. Times are
+    <span>[<a href="#RFC3339" class="cite xref">RFC3339</a>]</span> in UTC with a "Z" and no fractional seconds,
+    unless stated otherwise.<a href="#section-1.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="declaration">
+<section id="section-2">
+      <h2 id="name-the-agent-declaration">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-the-agent-declaration" class="section-name selfRef">The Agent Declaration</a>
+      </h2>
+<p id="section-2-1">The agent declaration states, in ordinary header fields, that software
+  wrote the message, what kind of software, and on whose behalf. It is
+  readable by any receiver that understands the fields and requires nothing
+  else of the receiving system.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<div id="decl-fields">
+<section id="section-2.1">
+        <h3 id="name-fields">
+<a href="#section-2.1" class="section-number selfRef">2.1. </a><a href="#name-fields" class="section-name selfRef">Fields</a>
+        </h3>
+<p id="section-2.1-1">A sender whose kind is "agent" or "service" emits all three of the
+    following. A person sending a message an agent drafted (for example after
+    approving it) emits only AI-Disclosure. A person sending their own message
+    emits none of them.<a href="#section-2.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2.1-2">
+          <dt id="section-2.1-2.1">Agent-of:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-2.2">
+            <p id="section-2.1-2.2.1">As defined in <span>[<a href="#I-D.chuang-agent-attribution-header-fields" class="cite xref">I-D.chuang-agent-attribution-header-fields</a>]</span>:
+      an address-list <span>[<a href="#RFC5322" class="cite xref">RFC5322</a>]</span> naming who is responsible. A
+      Post sender writes exactly one address. The address SHOULD be an
+      alias at the DKIM signing domain that reaches the responsible party
+      rather than a person's own mailbox, so the field does not publish a
+      personal address. Its display name, when present, is the "on behalf
+      of" value.<a href="#section-2.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.1-2.3">Agent-attribution:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-2.4">
+            <p id="section-2.1-2.4.1">As defined in <span>[<a href="#I-D.chuang-agent-attribution-header-fields" class="cite xref">I-D.chuang-agent-attribution-header-fields</a>]</span>:
+      base64 of a JSON <span>[<a href="#RFC8259" class="cite xref">RFC8259</a>]</span> object. That draft leaves the
+      object's members to a future registry. Post defines these:<a href="#section-2.1-2.4.1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlCompact dlParallel" id="section-2.1-2.4.2">
+              <dt id="section-2.1-2.4.2.1">v</dt>
+              <dd style="margin-left: 1.5em" id="section-2.1-2.4.2.2">The integer 1.<a href="#section-2.1-2.4.2.2" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-2.1-2.4.2.3">kind</dt>
+              <dd style="margin-left: 1.5em" id="section-2.1-2.4.2.4">The sender kind, "agent" or "service".<a href="#section-2.1-2.4.2.4" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-2.1-2.4.2.5">on_behalf_of</dt>
+              <dd style="margin-left: 1.5em" id="section-2.1-2.4.2.6">A string, or null when the sender declares no
+        responsible party beyond the Agent-of address.<a href="#section-2.1-2.4.2.6" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-2.1-2.4.2.7">platform</dt>
+              <dd style="margin-left: 1.5em" id="section-2.1-2.4.2.8">The host's domain name.<a href="#section-2.1-2.4.2.8" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-2.1-2.4.2.9">verify</dt>
+              <dd style="margin-left: 1.5em" id="section-2.1-2.4.2.10">OPTIONAL. An HTTPS URL at which the host describes
+        this message (<a href="#decl-verify-page" class="auto internal xref">Section 2.3</a>).<a href="#section-2.1-2.4.2.10" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-2.1-2.4.2.11">card</dt>
+              <dd style="margin-left: 1.5em" id="section-2.1-2.4.2.12">OPTIONAL. The URL of the sending
+        address's agent card (<a href="#card" class="auto internal xref">Section 3.5</a>).<a href="#section-2.1-2.4.2.12" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+</dl>
+<p id="section-2.1-2.4.3">A receiver MUST ignore members it does not recognise.<a href="#section-2.1-2.4.3" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.1-2.5">AI-Disclosure:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-2.6">
+            <p id="section-2.1-2.6.1">The field of <span>[<a href="#I-D.abaris-aicdh" class="cite xref">I-D.abaris-aicdh</a>]</span>, a Structured
+      Field Dictionary <span>[<a href="#RFC9651" class="cite xref">RFC9651</a>]</span>, used here in mail with the
+      same syntax. That draft defines the field for HTTP only; this document
+      defines its use in a message header. Values a Post sender writes:<a href="#section-2.1-2.6.1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-2.1-2.6.2.1">
+                <code>mode=ai-originated</code>: kind "agent".<a href="#section-2.1-2.6.2.1" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-2.1-2.6.2.2">
+                <code>mode=machine-generated</code>: kind "service".<a href="#section-2.1-2.6.2.2" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-2.1-2.6.2.3">
+                <code>mode=ai-originated, reviewed-by="person"</code>: a person sent
+        what an agent drafted.<a href="#section-2.1-2.6.2.3" class="pilcrow">¶</a>
+</li>
+            </ul>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-2.1-3">The kind declared is the kind of what sent the message, not of the
+    address. Software sending from an address that belongs to a person MUST
+    declare "agent" (or "service"), never "person"; "person" means a person
+    composed or approved the message.<a href="#section-2.1-3" class="pilcrow">¶</a></p>
+<p id="section-2.1-4">A host MUST remove any of these three fields that a client supplied
+    (for example in SMTP submission <span>[<a href="#RFC6409" class="cite xref">RFC6409</a>]</span>) and emit only its
+    own. Otherwise any user of the host could put a forged declaration under
+    the host's signature.<a href="#section-2.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="decl-dkim">
+<section id="section-2.2">
+        <h3 id="name-authentication-by-dkim">
+<a href="#section-2.2" class="section-number selfRef">2.2. </a><a href="#name-authentication-by-dkim" class="section-name selfRef">Authentication by DKIM</a>
+        </h3>
+<p id="section-2.2-1">The declaration is trustworthy only under a DKIM signature that covers
+    it, from a domain that answers for it. A sender:<a href="#section-2.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-2.2-2.1">MUST sign the message with DKIM <span>[<a href="#RFC6376" class="cite xref">RFC6376</a>]</span>, with an
+      "h=" tag that includes Agent-of, Agent-attribution and AI-Disclosure
+      (whichever are present), From, To, Cc, Subject, MIME-Version and
+      Content-Type;<a href="#section-2.2-2.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-2.2-2.2">MUST use a signing domain ("d=") that is aligned, in the relaxed
+      sense of <span>[<a href="#RFC9989" class="cite xref">RFC9989</a>]</span>, with the domain of the Agent-of
+      address, as <span>[<a href="#I-D.chuang-agent-attribution-header-fields" class="cite xref">I-D.chuang-agent-attribution-header-fields</a>]</span>
+      Section 1.2.1 requires;<a href="#section-2.2-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-2.2-2.3">SHOULD NOT rely on signing Message-ID or Date when a relay is known
+      to rewrite them. (The implementation in <a href="#impl" class="auto internal xref">Section 7</a> omits both,
+      because its outbound relay replaces the first and rewrites the second;
+      the signature's "t=" tag dates it.)<a href="#section-2.2-2.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-2.2-3">That signature is separate from, and in addition to, any signature
+    aligned with the From domain. A host that sends for many domains can
+    answer for every declaration with one signing domain, its own, and the
+    receiver learns from the alignment who is answering.<a href="#section-2.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="decl-verify-page">
+<section id="section-2.3">
+        <h3 id="name-the-verify-link">
+<a href="#section-2.3" class="section-number selfRef">2.3. </a><a href="#name-the-verify-link" class="section-name selfRef">The Verify Link</a>
+        </h3>
+<p id="section-2.3-1">When Agent-attribution carries "verify", the URL MUST be HTTPS, MUST be
+    unguessable (the implementation uses 128 random bits) and SHOULD return a
+    description of the message as the host recorded it: the kind, the
+    on-behalf-of value, the From address and when it was sent. It MUST NOT
+    return the subject, the body or the recipients, because the link travels
+    with every forwarded copy. The page says the host sent a message; it does
+    not say that the copy in hand is unchanged. That is what the signatures
+    are for.<a href="#section-2.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="decl-trust">
+<section id="section-2.4">
+        <h3 id="name-what-a-receiver-may-trust">
+<a href="#section-2.4" class="section-number selfRef">2.4. </a><a href="#name-what-a-receiver-may-trust" class="section-name selfRef">What a Receiver May Trust</a>
+        </h3>
+<p id="section-2.4-1">A receiver MUST NOT act on Agent-of, Agent-attribution or AI-Disclosure
+    unless <a href="#verify-declaration" class="auto internal xref">Section 4.1</a> ends in "signed". Given
+    "signed", the receiver may rely on the host aligned with the Agent-of
+    domain having stated the kind and on-behalf-of value. It has not learned
+    that the statement is true: the host answers for it, as a domain answers
+    for mail it signs.<a href="#section-2.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="discovery">
+<section id="section-3">
+      <h2 id="name-domain-keys-and-the-agent-c">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-domain-keys-and-the-agent-c" class="section-name selfRef">Domain Keys and the Agent Card</a>
+      </h2>
+<p id="section-3-1">A signing domain publishes Ed25519 public keys that sign envelopes
+  (<a href="#envelope" class="auto internal xref">Section 5.2</a>) and agent cards (<a href="#card" class="auto internal xref">Section 3.5</a>), and
+  will sign receipts (<a href="#receipts" class="auto internal xref">Section 5.4</a>). The
+  pattern is MTA-STS's <span>[<a href="#RFC8461" class="cite xref">RFC8461</a>]</span>: a DNS record says the domain
+  takes part, and an HTTPS document on a dedicated host name holds the
+  policy.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<div id="disc-txt">
+<section id="section-3.1">
+        <h3 id="name-the-dns-record">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-the-dns-record" class="section-name selfRef">The DNS Record</a>
+        </h3>
+<p id="section-3.1-1">A TXT record at <code>_post.&lt;domain&gt;</code>:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<div class="lang-abnf sourcecode" id="section-3.1-2">
+<pre>
+post-record = "v=post0" *WSP ";" *WSP "id=" policy-id
+policy-id   = 1*(ALPHA / DIGIT)
+</pre><a href="#section-3.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-3.1-3">The record says the domain signs. The id is a hint to refetch. A host
+    that controls the domain's DNS SHOULD set it to the first 16 hexadecimal
+    characters of the SHA-256 of the policy's exact bytes, so that it changes
+    whenever the policy does. A host that does not control the DNS writes a
+    fixed id once; nothing depends on it changing
+    (<a href="#disc-refetch" class="auto internal xref">Section 3.3</a>). A receiver MUST treat a domain with no
+    such record as not signing.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disc-policy">
+<section id="section-3.2">
+        <h3 id="name-the-policy">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-the-policy" class="section-name selfRef">The Policy</a>
+        </h3>
+<p id="section-3.2-1">The policy is served at
+    <code>https://post.&lt;domain&gt;/.well-known/post.json</code>
+          <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span>, never at the apex: the apex is usually somebody
+    else's website, while <code>post.&lt;domain&gt;</code> can point at the
+    host (for example by a CNAME), which then serves the policy and its TLS
+    certificate. It is a JSON object:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-3.2-2">
+          <dt id="section-3.2-2.1">v</dt>
+          <dd style="margin-left: 1.5em" id="section-3.2-2.2">REQUIRED. The string "post0".<a href="#section-3.2-2.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.2-2.3">max_age</dt>
+          <dd style="margin-left: 1.5em" id="section-3.2-2.4">OPTIONAL. Seconds a receiver may hold the policy;
+      86400 if absent.<a href="#section-3.2-2.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.2-2.5">keys</dt>
+          <dd style="margin-left: 1.5em" id="section-3.2-2.6">
+            <p id="section-3.2-2.6.1">REQUIRED. An array of key objects, each with:<a href="#section-3.2-2.6.1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlCompact dlParallel" id="section-3.2-2.6.2">
+              <dt id="section-3.2-2.6.2.1">kid</dt>
+              <dd style="margin-left: 1.5em" id="section-3.2-2.6.2.2">An opaque string naming the key, unique within the
+          domain.<a href="#section-3.2-2.6.2.2" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-3.2-2.6.2.3">alg</dt>
+              <dd style="margin-left: 1.5em" id="section-3.2-2.6.2.4">"Ed25519". A receiver MUST ignore a key with any
+          other value.<a href="#section-3.2-2.6.2.4" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-3.2-2.6.2.5">pub</dt>
+              <dd style="margin-left: 1.5em" id="section-3.2-2.6.2.6">The 32-byte public key <span>[<a href="#RFC8032" class="cite xref">RFC8032</a>]</span>,
+          base64url.<a href="#section-3.2-2.6.2.6" class="pilcrow">¶</a>
+</dd>
+              <dd class="break"></dd>
+<dt id="section-3.2-2.6.2.7">not_after</dt>
+              <dd style="margin-left: 1.5em" id="section-3.2-2.6.2.8">When the key stops being valid. A receiver
+          MUST ignore a key without a parseable value and MUST refuse a
+          signature made with a key past it.<a href="#section-3.2-2.6.2.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+</dl>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.2-2.7">identity</dt>
+          <dd style="margin-left: 1.5em" id="section-3.2-2.8">OPTIONAL. An object whose member "issuer" is the
+      HTTPS URL of an OpenID Connect issuer for the domain's addresses. Its
+      use is outside this document (<a href="#future" class="auto internal xref">Appendix A</a>).<a href="#section-3.2-2.8" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.2-2.9">endpoint, first_contact, features</dt>
+          <dd style="margin-left: 1.5em" id="section-3.2-2.10">Reserved for delivery over
+      HTTPS (<a href="#future" class="auto internal xref">Appendix A</a>). A version 0 receiver MUST ignore them,
+      and a host MUST NOT list in "features" anything it does not
+      implement.<a href="#section-3.2-2.10" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-3.2-3">A receiver MUST ignore members it does not recognise. A receiver fetching
+    a policy SHOULD use port 443 only, SHOULD NOT follow redirects, SHOULD
+    refuse a host name that resolves to a private or loopback address, and
+    SHOULD refuse a policy larger than 64 KiB.<a href="#section-3.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disc-refetch">
+<section id="section-3.3">
+        <h3 id="name-caching-rotation-and-refetc">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-caching-rotation-and-refetc" class="section-name selfRef">Caching, Rotation and Refetching</a>
+        </h3>
+<p id="section-3.3-1">A receiver clamps the policy's max_age to between 60 seconds and
+    7 days. It fetches the policy again in exactly these cases, checked in
+    this order:<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-3.3-2">
+      <li id="section-3.3-2.1">It holds no policy for the domain.<a href="#section-3.3-2.1" class="pilcrow">¶</a>
+</li>
+          <li id="section-3.3-2.2">Its copy is at least max_age seconds old.<a href="#section-3.3-2.2" class="pilcrow">¶</a>
+</li>
+          <li id="section-3.3-2.3">The TXT record's id differs from the one it saw when it fetched.<a href="#section-3.3-2.3" class="pilcrow">¶</a>
+</li>
+          <li id="section-3.3-2.4">A signature names a kid its copy does not hold, and its copy is at
+      least 60 seconds old. A receiver MUST NOT refetch for an unknown kid more
+      than once a minute per domain, and MUST refuse a kid still unknown after
+      that.<a href="#section-3.3-2.4" class="pilcrow">¶</a>
+</li>
+        </ol>
+<p id="section-3.3-3">Otherwise it verifies against the copy it holds. This rule is the
+    <code>discovery::decide</code> function of the reference core
+    (<a href="#impl" class="auto internal xref">Section 7</a>).<a href="#section-3.3-3" class="pilcrow">¶</a></p>
+<p id="section-3.3-4">To rotate, a host publishes the new key beside the old one, signs with
+    the new one at once, and sets the old key's not_after to max_age from
+    now, after which it leaves the policy. A receiver holding the old policy
+    meets an unknown kid and refetches. The TXT id is not needed for
+    rotation, which is why a fixed id works for domains whose DNS the host
+    does not hold.<a href="#section-3.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="disc-sig">
+<section id="section-3.4">
+        <h3 id="name-signatures">
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-signatures" class="section-name selfRef">Signatures</a>
+        </h3>
+<p id="section-3.4-1">Every Post signature is pure Ed25519 <span>[<a href="#RFC8032" class="cite xref">RFC8032</a>]</span> over
+    the exact bytes being signed. There is no canonical form: the bytes are
+    produced once, signed, and carried and stored as they are; a receiver
+    verifies the bytes it decodes. Two JSON texts equal as JSON but different
+    as bytes do not share a signature.<a href="#section-3.4-1" class="pilcrow">¶</a></p>
+<p id="section-3.4-2">Verification is strict. A receiver MUST reject a signature whose S is
+    not less than the group order L, and MUST reject a public key or an R that
+    is a point of small order. Plain verification as in
+    <span>[<a href="#RFC8032" class="cite xref">RFC8032</a>]</span> accepts some such signatures; the test vectors in
+    <a href="#vectors-core" class="auto internal xref">Appendix C</a> pin the line.<a href="#section-3.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="card">
+<section id="section-3.5">
+        <h3 id="name-the-agent-card">
+<a href="#section-3.5" class="section-number selfRef">3.5. </a><a href="#name-the-agent-card" class="section-name selfRef">The Agent Card</a>
+        </h3>
+<p id="section-3.5-1">The card is the newest part of this document (implemented 3 November
+  2026) and the most likely to change. Nothing in
+  <a href="#verification" class="auto internal xref">Section 4</a> depends on it.<a href="#section-3.5-1" class="pilcrow">¶</a></p>
+<p id="section-3.5-2">The declaration and the envelope give identity per message. The card
+  gives it per address: a document, issued automatically by the address's
+  host, that says what the address is and that a holder can check offline
+  against the issuer's policy.<a href="#section-3.5-2" class="pilcrow">¶</a></p>
+<div id="card-format">
+<section id="section-3.5.1">
+          <h4 id="name-format-and-signature">
+<a href="#section-3.5.1" class="section-number selfRef">3.5.1. </a><a href="#name-format-and-signature" class="section-name selfRef">Format and Signature</a>
+          </h4>
+<p id="section-3.5.1-1">A card is a JSON Web Signature <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> in compact
+    serialisation, with protected header <code>{"alg": "EdDSA", "typ":
+    "agent-card+jwt", "kid": &lt;kid&gt;}</code>. The kid names a key in the
+    issuer's policy (<a href="#disc-policy" class="auto internal xref">Section 3.2</a>), and the signature is
+    Ed25519 over the JWS signing input, verified strictly
+    (<a href="#disc-sig" class="auto internal xref">Section 3.4</a>). The typ keeps a card from being mistaken for
+    another token signed by the same key. The payload is a JSON object:<a href="#section-3.5.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-3.5.1-2">
+            <dt id="section-3.5.1-2.1">iss</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.2">
+              <code>https://post.&lt;issuer domain&gt;</code>: the
+      address's own domain when it signs, else the host's domain.<a href="#section-3.5.1-2.2" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.3">sub</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.4">A stable identifier for the address that the issuer
+      never reassigns, even if the address is deleted and created again.<a href="#section-3.5.1-2.4" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.5">iat, exp</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.6">Issued and expiry times, in seconds since the
+      epoch. The implementation issues cards valid for a day and signs one
+      afresh on each fetch.<a href="#section-3.5.1-2.6" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.7">v</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.8">"post0".<a href="#section-3.5.1-2.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.9">address</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.10">The address.<a href="#section-3.5.1-2.10" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.11">kind</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.12">"agent" or "service". Never "person": a person's
+      address has no card, and a request for one is answered as for an
+      address that does not exist.<a href="#section-3.5.1-2.12" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.13">on_behalf_of</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.14">As in the declaration; omitted when there is
+      nothing to say.<a href="#section-3.5.1-2.14" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.15">operator</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.16">
+              <code>{"domain", "verified"}</code>: the account's
+      domain and whether the host has verified control of it; omitted when
+      there is none.<a href="#section-3.5.1-2.16" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.17">created_at</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.18">When the address was created.<a href="#section-3.5.1-2.18" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.19">keys</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.20">What signs the address's mail, so a receiver knows what
+      to expect: <code>{"type": "post", "domain", "kid"}</code> for the envelope
+      key and <code>{"type": "dkim", "domain", "selector"}</code> for the
+      signature over the declaration.<a href="#section-3.5.1-2.20" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.21">reputation</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.22">Coarse, never a count: "standing" is "new" (an
+      address under 30 days old), "established" or "restricted" (suspended),
+      and "since" is a month (YYYY-MM).<a href="#section-3.5.1-2.22" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-3.5.1-2.23">url</dt>
+            <dd style="margin-left: 1.5em" id="section-3.5.1-2.24">The card's permanent URL.<a href="#section-3.5.1-2.24" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-3.5.1-3">A card carries only what the address's own mail already says, or facts
+    about its domain: never an owner, a member, or anything a mailbox
+    holds.<a href="#section-3.5.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="card-discovery">
+<section id="section-3.5.2">
+          <h4 id="name-discovery-and-checking">
+<a href="#section-3.5.2" class="section-number selfRef">3.5.2. </a><a href="#name-discovery-and-checking" class="section-name selfRef">Discovery and Checking</a>
+          </h4>
+<ul class="normal">
+<li class="normal" id="section-3.5.2-1.1">From the mail: the Agent-attribution object carries a member
+      "card", the card's URL, beside "verify" (the message's own page). It is
+      under the declaration's DKIM signature.<a href="#section-3.5.2-1.1" class="pilcrow">¶</a>
+</li>
+            <li class="normal" id="section-3.5.2-1.2">From the address alone: <code>GET
+      https://post.&lt;domain&gt;/.well-known/post/card?address=&lt;address&gt;</code>
+      returns <code>{"object": "agent_card", "url", "jws", "card"}</code>, where
+      card is the payload decoded for reading and jws is the authority.<a href="#section-3.5.2-1.2" class="pilcrow">¶</a>
+</li>
+          </ul>
+<p id="section-3.5.2-2">To check a card, a receiver takes the domain from iss (the host name
+    without its leading "post." label), obtains that domain's policy
+    and the key named by kid (<a href="#disc-refetch" class="auto internal xref">Section 3.3</a>), verifies the
+    signature, checks exp, and checks that address is the address it is
+    asking about. A card from an issuer other than the address's own domain
+    is the host's statement, not the domain owner's.<a href="#section-3.5.2-2" class="pilcrow">¶</a></p>
+<p id="section-3.5.2-3">The address lookup lets anyone ask whether an address is an agent's.
+    SMTP already says whether it exists and its mail says the rest; the
+    implementation rate-limits the lookup per client address.<a href="#section-3.5.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="verification">
+<section id="section-4">
+      <h2 id="name-verification">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-verification" class="section-name selfRef">Verification</a>
+      </h2>
+<p id="section-4-1">A receiver checks the two layers independently. Either may be absent;
+  each has its own outcome.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<div id="verify-declaration">
+<section id="section-4.1">
+        <h3 id="name-the-declaration">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-the-declaration" class="section-name selfRef">The Declaration</a>
+        </h3>
+<ol start="1" type="1" class="normal type-1" id="section-4.1-1">
+      <li id="section-4.1-1.1">If the message has none of Agent-of, Agent-attribution and
+      AI-Disclosure, the outcome is "absent".<a href="#section-4.1-1.1" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.1-1.2">Find DKIM signatures whose "h=" tag covers every instance of those
+      fields that is present, and whose "d=" is aligned (relaxed) with the
+      domain of the Agent-of address. A message with AI-Disclosure alone has
+      no Agent-of to align with: any DKIM signature covering the field
+      qualifies, and its "d=" names the party answering for it. If there is
+      none, the outcome is "absent": the message claims a declaration that
+      nobody answers for, and a receiver SHOULD say so.<a href="#section-4.1-1.2" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.1-1.3">Verify such a signature <span>[<a href="#RFC6376" class="cite xref">RFC6376</a>]</span>. If none verifies
+      over the header fields, the outcome is "changed".<a href="#section-4.1-1.3" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.1-1.4">Read the facts only from the field instances the signature covered
+      (in DKIM, the last instances). An instance outside the signature, such
+      as a second Agent-of added in transit, MUST be ignored and SHOULD be
+      reported.<a href="#section-4.1-1.4" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.1-1.5">If the body hash also verifies, the outcome is "signed", body
+      "intact". If only the header fields were available (for example a
+      pasted header section), it is "signed", body "not checked". If the body
+      hash fails, the declaration is "signed" but the body is "changed", and a
+      receiver MUST NOT treat the body as the sender's.<a href="#section-4.1-1.5" class="pilcrow">¶</a>
+</li>
+        </ol>
+</section>
+</div>
+<div id="verify-envelope">
+<section id="section-4.2">
+        <h3 id="name-the-envelope">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-the-envelope" class="section-name selfRef">The Envelope</a>
+        </h3>
+<p id="section-4.2-1">For a message with a Post-Envelope field, in this order, stopping at
+    the first failure:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.2-2">
+      <li id="section-4.2-2.1">
+            <strong>Parse.</strong> Take the field; remove whitespace from each
+      tag value; require v, d, k, s and m, and v equal to "post0". Otherwise:
+      <code>malformed</code>.<a href="#section-4.2-2.1" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.2-2.2">
+            <strong>Domain.</strong> d MUST equal, ignoring case, the domain of
+      the From address. Otherwise: <code>domain_mismatch</code>.<a href="#section-4.2-2.2" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.2-2.3">
+            <strong>Key.</strong> Obtain d's policy and the key named by k by the
+      rules of <a href="#disc-refetch" class="auto internal xref">Section 3.3</a>. No TXT record:
+      <code>not_published</code>. No usable policy: <code>policy_unavailable</code>. A
+      kid still unknown: <code>unknown_kid</code>. A key past not_after:
+      <code>expired_key</code>.<a href="#section-4.2-2.3" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.2-2.4">
+            <strong>Signature.</strong> Decode m and s, and verify s over the
+      bytes of m, strictly (<a href="#disc-sig" class="auto internal xref">Section 3.4</a>). Otherwise:
+      <code>bad_signature</code>.<a href="#section-4.2-2.4" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.2-2.5">
+            <strong>Message.</strong> The bytes of m MUST be valid UTF-8 JSON
+      with v "post0" and a sender.kind that is a sender kind. Otherwise:
+      <code>invalid_message</code>.<a href="#section-4.2-2.5" class="pilcrow">¶</a>
+</li>
+          <li id="section-4.2-2.6">
+            <p id="section-4.2-2.6.1"><strong>Agreement with the MIME.</strong> The signed message MUST say
+      what the MIME says, because the MIME is what will be shown and stored:<a href="#section-4.2-2.6.1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-4.2-2.6.2.1">sender.address equals the From address, ignoring case
+          (<code>sender_mismatch</code>);<a href="#section-4.2-2.6.2.1" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-4.2-2.6.2.2">subject equals the decoded Subject
+          (<code>subject_mismatch</code>);<a href="#section-4.2-2.6.2.2" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-4.2-2.6.2.3">to and cc, as sets and ignoring case, equal the To and Cc
+          addresses (<code>recipients_mismatch</code>);<a href="#section-4.2-2.6.2.3" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-4.2-2.6.2.4">the text part equals the message's text/plain body, after
+          converting CRLF to LF and removing trailing whitespace from both
+          (<code>text_mismatch</code>);<a href="#section-4.2-2.6.2.4" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-4.2-2.6.2.5">the data part, if any, equals the typed data in the MIME, and
+          there is typed data in the MIME only if there is a data part
+          (<code>data_mismatch</code>);<a href="#section-4.2-2.6.2.5" class="pilcrow">¶</a>
+</li>
+              <li class="compact" id="section-4.2-2.6.2.6">the set of attachment sha256 values equals the set of SHA-256
+          hashes of the files carried; a file the message does not list fails
+          (<code>attachment_mismatch</code>).<a href="#section-4.2-2.6.2.6" class="pilcrow">¶</a>
+</li>
+            </ul>
+</li>
+        </ol>
+<p id="section-4.2-3">If every step passes, the outcome is "pass", and the declared sender
+    is the signed message's sender.kind and sender.on_behalf_of. Anything not
+    checked above, the HTML alternative in particular, is not covered, and a
+    receiver that has a "pass" SHOULD show the text rather than the HTML.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-4">Without a Post-Envelope field the outcome is "none".<a href="#section-4.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="verify-result">
+<section id="section-4.3">
+        <h3 id="name-combining-the-outcomes">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-combining-the-outcomes" class="section-name selfRef">Combining the Outcomes</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="section-4.3-1.1">Envelope "pass": the declared sender is the envelope's. It is the
+      sending domain's own statement, and it is bound to the content.<a href="#section-4.3-1.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-4.3-1.2">Otherwise, declaration "signed": the declared sender is the
+      declaration's, stated by the host aligned with the Agent-of domain.<a href="#section-4.3-1.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-4.3-1.3">Otherwise: no declared sender. The receiver records the kind and
+      on-behalf-of as unknown, not as "person". Mail arriving this way from
+      ordinary email is said to have origin "smtp".<a href="#section-4.3-1.3" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-4.3-2">A failed envelope is evidence that something is wrong. A receiver MUST
+    NOT treat it as "pass", and MAY refuse the message.<a href="#section-4.3-2" class="pilcrow">¶</a></p>
+<p id="section-4.3-3">"pass" proves that the domain wrote this content for these To and Cc
+    recipients. It does not prove that this copy was sent to this receiver
+    (<a href="#sec-replay" class="auto internal xref">Section 8.3</a>), and it does not replace DMARC as the test of
+    whether the From domain sent this copy.<a href="#section-4.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="transport">
+<section id="section-5">
+      <h2 id="name-between-post-endpoints">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-between-post-endpoints" class="section-name selfRef">Between Post Endpoints</a>
+      </h2>
+<p id="section-5-1">When both ends implement Post, the same message carries more than
+  either end gets from ordinary mail. Version 0 specifies what an endpoint
+  delivers over ordinary SMTP, or by any equivalent hand-off between two
+  endpoints run by the same host; delivery over HTTPS between hosts is future
+  work.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="tr-know">
+<section id="section-5.1">
+        <h3 id="name-knowing-the-other-end-speak">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-knowing-the-other-end-speak" class="section-name selfRef">Knowing the Other End Speaks Post</a>
+        </h3>
+<p id="section-5.1-1">A sender learns that a recipient's domain signs from the
+    <code>_post</code> record (<a href="#disc-txt" class="auto internal xref">Section 3.1</a>). Version 0
+    gives no stronger signal: a domain that signs is not thereby promising to
+    verify. A host may know more about addresses it hosts itself.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="envelope">
+<section id="section-5.2">
+        <h3 id="name-the-signed-envelope">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-the-signed-envelope" class="section-name selfRef">The Signed Envelope</a>
+        </h3>
+<p id="section-5.2-1">A signing domain signs each message it sends as a JSON document, the
+    "message", and carries it with the signature in a header field. A receiver
+    that holds the domain's key can then check the declared sender and the
+    content against the domain's signature, with no DKIM involved and no
+    dependence on how relays rewrite the MIME.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<div id="env-message">
+<section id="section-5.2.1">
+          <h4 id="name-the-message">
+<a href="#section-5.2.1" class="section-number selfRef">5.2.1. </a><a href="#name-the-message" class="section-name selfRef">The Message</a>
+          </h4>
+<p id="section-5.2.1-1">A JSON object, UTF-8, serialised once. Members:<a href="#section-5.2.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.2.1-2">
+            <dt id="section-5.2.1-2.1">v</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.2">"post0".<a href="#section-5.2.1-2.2" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.3">id</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.4">An opaque string of at most 64 characters, unique per
+        sending domain.<a href="#section-5.2.1-2.4" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.5">thread</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.6">An object: "id", set by whoever starts the
+        conversation and never changed; and "parent", the id of the message
+        replied to, when it is a reply.<a href="#section-5.2.1-2.6" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.7">sender</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.8">An object: "address", the From address; "kind", the
+        sender kind; and "on_behalf_of", present only when the sender declares
+        one. These are the same values as the agent declaration's
+        (<a href="#declaration" class="auto internal xref">Section 2</a>).<a href="#section-5.2.1-2.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.9">to, cc</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.10">Arrays of addresses, as in the To and Cc fields. Bcc
+        recipients never appear.<a href="#section-5.2.1-2.10" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.11">created_at</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.12">When the message was written.<a href="#section-5.2.1-2.12" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.13">subject</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.14">The Subject, decoded.<a href="#section-5.2.1-2.14" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.1-2.15">parts</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.1-2.16">
+              <p id="section-5.2.1-2.16.1">An array, in this order:<a href="#section-5.2.1-2.16.1" class="pilcrow">¶</a></p>
+<ul class="compact">
+<li class="compact" id="section-5.2.1-2.16.2.1">exactly one text part: <code>{"role":"text", "type":"text/plain",
+            "body": &lt;the text&gt;}</code>;<a href="#section-5.2.1-2.16.2.1" class="pilcrow">¶</a>
+</li>
+                <li class="compact" id="section-5.2.1-2.16.2.2">at most one data part: <code>{"role":"data", "schema":
+            &lt;URL&gt;, "body": &lt;any JSON&gt;}</code>
+            (<a href="#typed-data" class="auto internal xref">Section 5.2.3</a>);<a href="#section-5.2.1-2.16.2.2" class="pilcrow">¶</a>
+</li>
+                <li class="compact" id="section-5.2.1-2.16.2.3">one attachment part per file: <code>{"role":"attachment",
+            "type": &lt;media type&gt;, "name": &lt;file name&gt;, "sha256":
+            &lt;hex&gt;, "size": &lt;octets&gt;}</code>.<a href="#section-5.2.1-2.16.2.3" class="pilcrow">¶</a>
+</li>
+              </ul>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-5.2.1-3">The text part is written for a person. A receiving agent MUST treat it
+      as untrusted content to read, never as instructions. HTML is not part of
+      the message and nothing vouches for it.<a href="#section-5.2.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.2.1-4">The message carries files by hash only: at the SMTP border the bytes
+      travel in the MIME beside it.<a href="#section-5.2.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="env-field">
+<section id="section-5.2.2">
+          <h4 id="name-the-post-envelope-header-fi">
+<a href="#section-5.2.2" class="section-number selfRef">5.2.2. </a><a href="#name-the-post-envelope-header-fi" class="section-name selfRef">The Post-Envelope Header Field</a>
+          </h4>
+<p id="section-5.2.2-1">The field's value is a list of tag=value pairs as in DKIM
+      <span>[<a href="#RFC6376" class="cite xref">RFC6376</a>]</span> Section 3.2:<a href="#section-5.2.2-1" class="pilcrow">¶</a></p>
+<div class="lang-abnf sourcecode" id="section-5.2.2-2">
+<pre>
+  post-envelope = "Post-Envelope:" FWS env-tags CRLF
+  env-tags      = env-tag *( ";" FWS env-tag ) [";"]
+  env-tag       = tag-name "=" tag-value   ; RFC 6376, Section 3.2
+</pre><a href="#section-5.2.2-2" class="pilcrow">¶</a>
+</div>
+<span class="break"></span><dl class="dlParallel" id="section-5.2.2-3">
+            <dt id="section-5.2.2-3.1">v</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.2-3.2">"post0".<a href="#section-5.2.2-3.2" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.2-3.3">d</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.2-3.4">The signing domain. It MUST be the domain of the From
+        address.<a href="#section-5.2.2-3.4" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.2-3.5">k</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.2-3.6">The kid of the key that signed.<a href="#section-5.2.2-3.6" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.2-3.7">s</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.2-3.8">The Ed25519 signature over the message bytes,
+        base64url.<a href="#section-5.2.2-3.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.2.2-3.9">m</dt>
+            <dd style="margin-left: 1.5em" id="section-5.2.2-3.10">The message bytes, base64url.<a href="#section-5.2.2-3.10" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-5.2.2-4">A sender breaks the values of s and m into runs (the implementation
+      uses 76 characters) separated by spaces so the field can be folded; a
+      receiver removes all whitespace from every value before using it, as from
+      a DKIM "b=" tag. A receiver MUST ignore tags it does not recognise.<a href="#section-5.2.2-4" class="pilcrow">¶</a></p>
+<p id="section-5.2.2-5">A sender SHOULD NOT emit the field when the message is larger than
+      24 KiB before encoding: some mail systems discard header text past
+      100 KB, which would leave an envelope that cannot be verified. Such a
+      message goes out without one, as does mail from a domain that does not
+      sign.<a href="#section-5.2.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="typed-data">
+<section id="section-5.2.3">
+          <h4 id="name-typed-data-in-mime">
+<a href="#section-5.2.3" class="section-number selfRef">5.2.3. </a><a href="#name-typed-data-in-mime" class="section-name selfRef">Typed Data in MIME</a>
+          </h4>
+<p id="section-5.2.3-1">A message may carry one piece of structured data beside its text: a
+      "schema", an http or https URL of at most 900 characters naming what the
+      data is (for example <code>https://schema.org/Offer</code>), and a "body", any
+      JSON value of at most 64 KiB serialised. It travels:<a href="#section-5.2.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.2.3-2.1">in the envelope, as the data part;<a href="#section-5.2.3-2.1" class="pilcrow">¶</a>
+</li>
+            <li class="normal" id="section-5.2.3-2.2">in the MIME, as an alternative inside the message's
+        multipart/alternative, after any HTML alternative and before any
+        calendar part, with type <code>application/vnd.post+json</code>,
+        parameters <code>charset=utf-8</code> and <code>schema="&lt;URL&gt;"</code>, and
+        base64 transfer encoding.<a href="#section-5.2.3-2.2" class="pilcrow">¶</a>
+</li>
+          </ul>
+<p id="section-5.2.3-3">It is an alternative, not an attachment, so a client that does not
+      understand it shows the text or HTML. A receiver lifts the first such part
+      whose content is JSON and whose schema is an http(s) URL into the
+      message's data; anything else stays an attachment.<a href="#section-5.2.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.2.3-4">The schema is a label a receiver may check, not something version 0
+      validates. Data is parsed as data. A receiving agent MUST NOT treat it as
+      instructions, and a screening system that reads prose for prompt
+      injection has no reason to read it.<a href="#section-5.2.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="tr-delivery">
+<section id="section-5.3">
+        <h3 id="name-delivery">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-delivery" class="section-name selfRef">Delivery</a>
+        </h3>
+<p id="section-5.3-1">A sender delivers one copy per recipient, carrying the Post-Envelope
+    field, the typed data alternative and the agent declaration. A receiving
+    endpoint runs <a href="#verify-envelope" class="auto internal xref">Section 4.2</a> before storing anything. On
+    "pass" it stores the copy with the declared sender from the envelope and
+    the text (not the HTML), and reports that the signature passed. On
+    failure it MUST NOT store the copy as verified.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">A receiver keeps the original bytes of a delivered copy where it can,
+    so the signature can be checked again later.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+<p id="section-5.3-3">The Message-ID SHOULD be the same on every recipient's copy, so a reply
+    from an ordinary mail client threads back to the conversation.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="receipts">
+<section id="section-5.4">
+        <h3 id="name-receipts">
+<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-receipts" class="section-name selfRef">Receipts</a>
+        </h3>
+<p id="section-5.4-1">A receipt tells a sender what happened to a message after it reached
+    the recipient's endpoint. Kinds:<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.4-2">
+          <dt id="section-5.4-2.1">delivered</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.2">The copy is in the recipient's mailbox.<a href="#section-5.4-2.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.3">read</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.4">The receiving agent or person opened it. A recipient
+      MUST NOT send it unless the recipient's mailbox has opted in, and MAY
+      refuse it without saying why. It is off by default.<a href="#section-5.4-2.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.5">handed_off</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.6">The recipient's conversation passed from software
+      to a person.<a href="#section-5.4-2.6" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-5.4-2.7">failed</dt>
+          <dd style="margin-left: 1.5em" id="section-5.4-2.8">The message could not be delivered.<a href="#section-5.4-2.8" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-5.4-3">A receiving endpoint sends each kind at most once per received copy.<a href="#section-5.4-3" class="pilcrow">¶</a></p>
+<div id="receipt-format">
+<section id="section-5.4.1">
+          <h4 id="name-the-receipt">
+<a href="#section-5.4.1" class="section-number selfRef">5.4.1. </a><a href="#name-the-receipt" class="section-name selfRef">The Receipt</a>
+          </h4>
+<p id="section-5.4.1-1">A JSON object, signed as exact bytes like the message:<a href="#section-5.4.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5.4.1-2">
+            <dt id="section-5.4.1-2.1">v</dt>
+            <dd style="margin-left: 1.5em" id="section-5.4.1-2.2">"post0".<a href="#section-5.4.1-2.2" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.4.1-2.3">message_id</dt>
+            <dd style="margin-left: 1.5em" id="section-5.4.1-2.4">The id of the message (<a href="#env-message" class="auto internal xref">Section 5.2.1</a>).<a href="#section-5.4.1-2.4" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.4.1-2.5">from_domain</dt>
+            <dd style="margin-left: 1.5em" id="section-5.4.1-2.6">The sending domain. Ids are unique per sending
+        domain only, so the pair names the message.<a href="#section-5.4.1-2.6" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.4.1-2.7">recipient</dt>
+            <dd style="margin-left: 1.5em" id="section-5.4.1-2.8">The address whose copy this is.<a href="#section-5.4.1-2.8" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.4.1-2.9">kind</dt>
+            <dd style="margin-left: 1.5em" id="section-5.4.1-2.10">The receipt kind.<a href="#section-5.4.1-2.10" class="pilcrow">¶</a>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-5.4.1-2.11">at</dt>
+            <dd style="margin-left: 1.5em" id="section-5.4.1-2.12">When it happened.<a href="#section-5.4.1-2.12" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-5.4.1-3">The recipient's domain signs the bytes with a key from its own
+      policy. A sender that keeps the bytes and the signature can show a third
+      party that the recipient's domain confirmed the event.<a href="#section-5.4.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="receipt-wire">
+<section id="section-5.4.2">
+          <h4 id="name-carrying-a-receipt">
+<a href="#section-5.4.2" class="section-number selfRef">5.4.2. </a><a href="#name-carrying-a-receipt" class="section-name selfRef">Carrying a Receipt</a>
+          </h4>
+<p id="section-5.4.2-1">A receipt travels as a JSON object with members "v" ("post0"), "d"
+      (the recipient's domain), "kid", "receipt" (the receipt bytes,
+      base64url) and "sig" (the signature, base64url). A receiver of a receipt
+      verifies it as in <a href="#verify-envelope" class="auto internal xref">Section 4.2</a> steps 3 and 4, against
+      d's policy, and checks that recipient's domain is d.<a href="#section-5.4.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.4.2-2">How a receipt reaches the sender is outside version 0; between
+      addresses on one host it is an internal event. Over HTTPS between hosts
+      it is future work (<a href="#future" class="auto internal xref">Appendix A</a>).<a href="#section-5.4.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="names">
+<section id="section-6">
+      <h2 id="name-names-on-the-wire">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-names-on-the-wire" class="section-name selfRef">Names on the Wire</a>
+      </h2>
+<p id="section-6-1">These identifiers carry the protocol's name:<a href="#section-6-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+        <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Identifier</th>
+            <th class="text-left" rowspan="1" colspan="1">Where</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>Post-Envelope</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Header field (<a href="#env-field" class="auto internal xref">Section 5.2.2</a>)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>post0</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Version string in every object and record</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>_post</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">DNS label (<a href="#disc-txt" class="auto internal xref">Section 3.1</a>)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>post.&lt;domain&gt;</code>, <code>/.well-known/post.json</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Policy location (<a href="#disc-policy" class="auto internal xref">Section 3.2</a>)</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>application/vnd.post+json</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Media type (<a href="#typed-data" class="auto internal xref">Section 5.2.3</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+</section>
+</div>
+<div id="impl">
+<section id="section-7">
+      <h2 id="name-implementation-status">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-implementation-status" class="section-name selfRef">Implementation Status</a>
+      </h2>
+<p id="section-7-1">This section is to be removed before publication, as
+  <span>[<a href="#RFC7942" class="cite xref">RFC7942</a>]</span> describes.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Pidgeon, an email service for people and software agents, implements
+  everything in this document except the signed receipt (receipts are emitted unsigned, in the receipt's shape, as
+  events to the sender). On 3 November 2026 the agent declaration was on 565
+  of 984 messages sent in the previous 7 days. Every message sent through the
+  API from a signing domain carries Post-Envelope, unless it is over the size
+  limit of <a href="#env-field" class="auto internal xref">Section 5.2.2</a>; messages from a user's own mail client
+  by SMTP submission carry none.
+  Between two Pidgeon addresses on signing domains, copies are delivered
+  directly and verified by <a href="#verify-envelope" class="auto internal xref">Section 4.2</a> before they are
+  stored; a copy that fails is refused and sent as ordinary mail.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">The core is "post-core", in Rust (Apache-2.0), with a WebAssembly
+  binding: Ed25519 signing and strict verification, and the refetch rule of
+  <a href="#disc-refetch" class="auto internal xref">Section 3.3</a>. The test vectors in
+  <a href="#vectors" class="auto internal xref">Appendix D</a> are produced from the running code.<a href="#section-7-3" class="pilcrow">¶</a></p>
+<p id="section-7-4">Pidgeon also runs a public checker for the declaration, which reports the
+  outcomes of <a href="#verify-declaration" class="auto internal xref">Section 4.1</a> for a pasted message.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<p id="section-7-5">Known limits of the implementation: its inbound path from ordinary
+  email does not yet verify Post-Envelope fields from other domains (the
+  remote fetch of <a href="#disc-refetch" class="auto internal xref">Section 3.3</a> exists but is not called
+  there); the DKIM signature over the declaration is the host's
+  (d=pidgeon.email), not a second one from a customer's domain; and no
+  receiver other than Pidgeon is known.<a href="#section-7-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security">
+<section id="section-8">
+      <h2 id="name-security-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="sec-honest">
+<section id="section-8.1">
+        <h3 id="name-a-signature-is-not-a-truth">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-a-signature-is-not-a-truth" class="section-name selfRef">A Signature Is Not a Truth</a>
+        </h3>
+<p id="section-8.1-1">The declaration and the envelope prove who stated something, not that
+    it is true. A domain that lies about its sender's kind is caught only by
+    the reputation of the domain that signed. Receivers SHOULD treat the
+    signing domain, not the declaration, as the accountable party.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-forgery">
+<section id="section-8.2">
+        <h3 id="name-forged-declarations">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-forged-declarations" class="section-name selfRef">Forged Declarations</a>
+        </h3>
+<p id="section-8.2-1">Agent-of and its companions are ordinary header fields anybody can
+    write. They are worth nothing without <a href="#verify-declaration" class="auto internal xref">Section 4.1</a>,
+    and a host that signs for many users MUST strip client-written instances
+    (<a href="#decl-fields" class="auto internal xref">Section 2.1</a>), or its signature would cover a forgery.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-replay">
+<section id="section-8.3">
+        <h3 id="name-replay">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-replay" class="section-name selfRef">Replay</a>
+        </h3>
+<p id="section-8.3-1">The envelope binds the content and the To and Cc recipients, but Bcc
+    recipients are legitimately absent from it, so a receiver cannot tell a
+    copy sent to it by Bcc from a captured message replayed to it. Version 0
+    has no freshness on the envelope: created_at is when the message was
+    written, and a message may be retried for days. A receiver SHOULD NOT
+    treat an envelope "pass" alone as proof that the From domain sent this
+    copy to it; DMARC answers that question for mail that arrives by SMTP.
+    The implementation trusts "pass" as sender authentication only for copies
+    handed over directly by its own sending path, and ignores Post-Envelope on
+    mail that arrives over SMTP. Binding a delivery to its recipients and a
+    time is future work (<a href="#future" class="auto internal xref">Appendix A</a>).<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-keys">
+<section id="section-8.4">
+        <h3 id="name-key-compromise-and-revocati">
+<a href="#section-8.4" class="section-number selfRef">8.4. </a><a href="#name-key-compromise-and-revocati" class="section-name selfRef">Key Compromise and Revocation</a>
+        </h3>
+<p id="section-8.4-1">Revocation is never instant. A stolen key is usable until the host
+    removes it from its policy and every receiver's copy expires, at most the
+    clamped max_age (7 days), and never past the key's not_after. Hosts SHOULD
+    keep max_age short while withdrawing a key. The unknown-kid refetch is
+    rate-limited so that an attacker cannot make a receiver fetch a policy on
+    every message.<a href="#section-8.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-fetch">
+<section id="section-8.5">
+        <h3 id="name-fetching-policies">
+<a href="#section-8.5" class="section-number selfRef">8.5. </a><a href="#name-fetching-policies" class="section-name selfRef">Fetching Policies</a>
+        </h3>
+<p id="section-8.5-1">A policy fetch is a request a sender can make a receiver perform. The
+    limits in <a href="#disc-policy" class="auto internal xref">Section 3.2</a> (port 443, no redirects, no private
+    addresses, a size cap) prevent its use against the receiver's own network.
+    A policy is trusted only as far as the TLS certificate for
+    <code>post.&lt;domain&gt;</code> and the domain's DNS are.<a href="#section-8.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-injection">
+<section id="section-8.6">
+        <h3 id="name-content-written-for-people-">
+<a href="#section-8.6" class="section-number selfRef">8.6. </a><a href="#name-content-written-for-people-" class="section-name selfRef">Content Written for People, Read by Software</a>
+        </h3>
+<p id="section-8.6-1">The text part and the HTML are untrusted input. A receiving agent MUST
+    NOT follow instructions found in them, whether or not the envelope passes:
+    a signature says who wrote the text, not that it is safe. Typed data is
+    parsed as data.<a href="#section-8.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-strict">
+<section id="section-8.7">
+        <h3 id="name-signature-malleability">
+<a href="#section-8.7" class="section-number selfRef">8.7. </a><a href="#name-signature-malleability" class="section-name selfRef">Signature Malleability</a>
+        </h3>
+<p id="section-8.7-1">Strict Ed25519 verification (<a href="#disc-sig" class="auto internal xref">Section 3.4</a>) ensures one
+    message has one valid signature per key, and that a weak key cannot make
+    a forged signature pass. Implementations that use a library's default
+    verification SHOULD check it against the vectors.<a href="#section-8.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="privacy">
+<section id="section-9">
+      <h2 id="name-privacy-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="section-9-1.1">Agent-of names a responsible party. It SHOULD be an alias rather than
+    a person's mailbox. A host SHOULD NOT derive on_behalf_of from a person's
+    name or address unless that person chose to publish it; the
+    implementation uses an organisation name an owner set, else a verified
+    domain, else nothing.<a href="#section-9-1.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-1.2">The verify link travels with every forward. It MUST NOT reveal the
+    subject, body or recipients (<a href="#decl-verify-page" class="auto internal xref">Section 2.3</a>).<a href="#section-9-1.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-1.3">The envelope repeats the To and Cc addresses and the text in a header
+    field. It reveals nothing a recipient does not already have, but mail
+    systems that log header fields will log it.<a href="#section-9-1.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-1.4">A read receipt reveals behaviour. It is off by default and opt-in per
+    mailbox.<a href="#section-9-1.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="section-9-1.5">A policy fetch tells the sending domain's host that some receiver is
+    checking its mail, and roughly when. Caching limits this to once per
+    max_age per receiver.<a href="#section-9-1.5" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="iana">
+<section id="section-10">
+      <h2 id="name-iana-considerations">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<div id="iana-headers">
+<section id="section-10.1">
+        <h3 id="name-message-header-fields">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-message-header-fields" class="section-name selfRef">Message Header Fields</a>
+        </h3>
+<p id="section-10.1-1">IANA is asked to register in the "Provisional Message Header Field
+    Names" registry <span>[<a href="#RFC3864" class="cite xref">RFC3864</a>]</span>:<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlCompact dlParallel" id="section-10.1-2">
+          <dt id="section-10.1-2.1">Header field name:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.2">Post-Envelope<a href="#section-10.1-2.2" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-10.1-2.3">Applicable protocol:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.4">mail<a href="#section-10.1-2.4" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-10.1-2.5">Status:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.6">provisional<a href="#section-10.1-2.6" class="pilcrow">¶</a>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-10.1-2.7">Specification document:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.8">this document, <a href="#env-field" class="auto internal xref">Section 5.2.2</a><a href="#section-10.1-2.8" class="pilcrow">¶</a>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-10.1-3">and AI-Disclosure, with applicable protocol "mail", status provisional,
+    referring to <span>[<a href="#I-D.abaris-aicdh" class="cite xref">I-D.abaris-aicdh</a>]</span> for syntax and this document,
+    <a href="#decl-fields" class="auto internal xref">Section 2.1</a>, for its use in mail. Agent-of and
+    Agent-attribution are left to <span>[<a href="#I-D.chuang-agent-attribution-header-fields" class="cite xref">I-D.chuang-agent-attribution-header-fields</a>]</span>,
+    which requests no registration yet.<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-wellknown">
+<section id="section-10.2">
+        <h3 id="name-well-known-uri">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-well-known-uri" class="section-name selfRef">Well-Known URI</a>
+        </h3>
+<p id="section-10.2-1">IANA is asked to register "post.json" in the "Well-Known URIs"
+    registry <span>[<a href="#RFC8615" class="cite xref">RFC8615</a>]</span>, status provisional, referring to
+    <a href="#disc-policy" class="auto internal xref">Section 3.2</a>. The card lookup
+    (<a href="#card-discovery" class="auto internal xref">Section 3.5.2</a>) uses "post/card"; whether it
+    becomes a second registration or moves under one name is open.<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-media">
+<section id="section-10.3">
+        <h3 id="name-media-type">
+<a href="#section-10.3" class="section-number selfRef">10.3. </a><a href="#name-media-type" class="section-name selfRef">Media Type</a>
+        </h3>
+<p id="section-10.3-1">The media type application/vnd.post+json is to be registered in
+    the vendor tree <span>[<a href="#RFC6838" class="cite xref">RFC6838</a>]</span>, with required parameter
+    "schema" (an http or https URL) and optional "charset" ("utf-8").<a href="#section-10.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-underscore">
+<section id="section-10.4">
+        <h3 id="name-underscored-dns-node-name">
+<a href="#section-10.4" class="section-number selfRef">10.4. </a><a href="#name-underscored-dns-node-name" class="section-name selfRef">Underscored DNS Node Name</a>
+        </h3>
+<p id="section-10.4-1">IANA is asked to add "_post", RR type TXT, to the "Underscored and
+    Globally Scoped DNS Node Names" registry <span>[<a href="#RFC8552" class="cite xref">RFC8552</a>]</span>,
+    referring to <a href="#disc-txt" class="auto internal xref">Section 3.1</a>.<a href="#section-10.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-attribution">
+<section id="section-10.5">
+        <h3 id="name-agent-attribution-members">
+<a href="#section-10.5" class="section-number selfRef">10.5. </a><a href="#name-agent-attribution-members" class="section-name selfRef">Agent-attribution Members</a>
+        </h3>
+<p id="section-10.5-1">When the registry anticipated by
+    <span>[<a href="#I-D.chuang-agent-attribution-header-fields" class="cite xref">I-D.chuang-agent-attribution-header-fields</a>]</span> exists, the
+    members in <a href="#decl-fields" class="auto internal xref">Section 2.1</a> are to be registered in it.<a href="#section-10.5-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<section id="section-11">
+      <h2 id="name-references">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<section id="section-11.1">
+        <h3 id="name-normative-references">
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.abaris-aicdh">[I-D.abaris-aicdh]</dt>
+        <dd>
+<span class="refAuthor">Abaris, D.</span>, <span class="refTitle">"AI Content Disclosure Header"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-abaris-aicdh-01</span>, <time datetime="2026-01-30" class="refDate">30 January 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-abaris-aicdh/01/">https://datatracker.ietf.org/doc/draft-abaris-aicdh/01/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="I-D.chuang-agent-attribution-header-fields">[I-D.chuang-agent-attribution-header-fields]</dt>
+        <dd>
+<span class="refAuthor">Chuang, W.</span> and <span class="refAuthor">E. Gustafsson</span>, <span class="refTitle">"Agent Attribution Header Fields"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-chuang-agent-attribution-header-fields-00</span>, <time datetime="2026-06-19" class="refDate">19 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-chuang-agent-attribution-header-fields/00/">https://datatracker.ietf.org/doc/draft-chuang-agent-attribution-header-fields/00/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc2119">https://www.rfc-editor.org/info/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3339">[RFC3339]</dt>
+        <dd>
+<span class="refAuthor">Klyne, G.</span> and <span class="refAuthor">C. Newman</span>, <span class="refTitle">"Date and Time on the Internet: Timestamps"</span>, <span class="seriesInfo">RFC 3339</span>, <span class="seriesInfo">DOI 10.17487/RFC3339</span>, <time datetime="2002-07" class="refDate">July 2002</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc3339">https://www.rfc-editor.org/info/rfc3339</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4648">[RFC4648]</dt>
+        <dd>
+<span class="refAuthor">Josefsson, S.</span>, <span class="refTitle">"The Base16, Base32, and Base64 Data Encodings"</span>, <span class="seriesInfo">RFC 4648</span>, <span class="seriesInfo">DOI 10.17487/RFC4648</span>, <time datetime="2006-10" class="refDate">October 2006</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc4648">https://www.rfc-editor.org/info/rfc4648</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5322">[RFC5322]</dt>
+        <dd>
+<span class="refAuthor">Resnick, P., Ed.</span>, <span class="refTitle">"Internet Message Format"</span>, <span class="seriesInfo">RFC 5322</span>, <span class="seriesInfo">DOI 10.17487/RFC5322</span>, <time datetime="2008-10" class="refDate">October 2008</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc5322">https://www.rfc-editor.org/info/rfc5322</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6376">[RFC6376]</dt>
+        <dd>
+<span class="refAuthor">Crocker, D., Ed.</span>, <span class="refAuthor">Hansen, T., Ed.</span>, and <span class="refAuthor">M. Kucherawy, Ed.</span>, <span class="refTitle">"DomainKeys Identified Mail (DKIM) Signatures"</span>, <span class="seriesInfo">STD 76</span>, <span class="seriesInfo">RFC 6376</span>, <span class="seriesInfo">DOI 10.17487/RFC6376</span>, <time datetime="2011-09" class="refDate">September 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6376">https://www.rfc-editor.org/info/rfc6376</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8032">[RFC8032]</dt>
+        <dd>
+<span class="refAuthor">Josefsson, S.</span> and <span class="refAuthor">I. Liusvaara</span>, <span class="refTitle">"Edwards-Curve Digital Signature Algorithm (EdDSA)"</span>, <span class="seriesInfo">RFC 8032</span>, <span class="seriesInfo">DOI 10.17487/RFC8032</span>, <time datetime="2017-01" class="refDate">January 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8032">https://www.rfc-editor.org/info/rfc8032</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8174">https://www.rfc-editor.org/info/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8259">[RFC8259]</dt>
+        <dd>
+<span class="refAuthor">Bray, T., Ed.</span>, <span class="refTitle">"The JavaScript Object Notation (JSON) Data Interchange Format"</span>, <span class="seriesInfo">STD 90</span>, <span class="seriesInfo">RFC 8259</span>, <span class="seriesInfo">DOI 10.17487/RFC8259</span>, <time datetime="2017-12" class="refDate">December 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8259">https://www.rfc-editor.org/info/rfc8259</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8615">[RFC8615]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span>, <span class="refTitle">"Well-Known Uniform Resource Identifiers (URIs)"</span>, <span class="seriesInfo">RFC 8615</span>, <span class="seriesInfo">DOI 10.17487/RFC8615</span>, <time datetime="2019-05" class="refDate">May 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8615">https://www.rfc-editor.org/info/rfc8615</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9651">[RFC9651]</dt>
+        <dd>
+<span class="refAuthor">Nottingham, M.</span> and <span class="refAuthor">P. Kamp</span>, <span class="refTitle">"Structured Field Values for HTTP"</span>, <span class="seriesInfo">RFC 9651</span>, <span class="seriesInfo">DOI 10.17487/RFC9651</span>, <time datetime="2024-09" class="refDate">September 2024</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9651">https://www.rfc-editor.org/info/rfc9651</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9989">[RFC9989]</dt>
+      <dd>
+<span class="refAuthor">Herr, T., Ed.</span> and <span class="refAuthor">J. Levine, Ed.</span>, <span class="refTitle">"Domain-Based Message Authentication, Reporting, and Conformance (DMARC)"</span>, <span class="seriesInfo">RFC 9989</span>, <span class="seriesInfo">DOI 10.17487/RFC9989</span>, <time datetime="2026-05" class="refDate">May 2026</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9989">https://www.rfc-editor.org/info/rfc9989</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+<section id="section-11.2">
+        <h3 id="name-informative-references">
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="I-D.ietf-wimse-aims">[I-D.ietf-wimse-aims]</dt>
+        <dd>
+<span class="refAuthor">IETF WIMSE Working Group</span>, <span class="refTitle">"AI Identity Management System"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-aims-01</span>, <time datetime="2026-11-02" class="refDate">2 November 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/01/">https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/01/</a>&gt;</span>. <span class="annotation">Replaces draft-klrc-aiagent-auth.</span>
+          </dd>
+<dd class="break"></dd>
+<dt id="I-D.ietf-wimse-arch">[I-D.ietf-wimse-arch]</dt>
+        <dd>
+<span class="refAuthor">IETF WIMSE Working Group</span>, <span class="refTitle">"Workload Identity in a Multi System Environment (WIMSE) Architecture"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-arch-08</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/08/">https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/08/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC3864">[RFC3864]</dt>
+        <dd>
+<span class="refAuthor">Klyne, G.</span>, <span class="refAuthor">Nottingham, M.</span>, and <span class="refAuthor">J. Mogul</span>, <span class="refTitle">"Registration Procedures for Message Header Fields"</span>, <span class="seriesInfo">BCP 90</span>, <span class="seriesInfo">RFC 3864</span>, <span class="seriesInfo">DOI 10.17487/RFC3864</span>, <time datetime="2004-09" class="refDate">September 2004</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc3864">https://www.rfc-editor.org/info/rfc3864</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6409">[RFC6409]</dt>
+        <dd>
+<span class="refAuthor">Gellens, R.</span> and <span class="refAuthor">J. Klensin</span>, <span class="refTitle">"Message Submission for Mail"</span>, <span class="seriesInfo">STD 72</span>, <span class="seriesInfo">RFC 6409</span>, <span class="seriesInfo">DOI 10.17487/RFC6409</span>, <time datetime="2011-11" class="refDate">November 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6409">https://www.rfc-editor.org/info/rfc6409</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6838">[RFC6838]</dt>
+        <dd>
+<span class="refAuthor">Freed, N.</span>, <span class="refAuthor">Klensin, J.</span>, and <span class="refAuthor">T. Hansen</span>, <span class="refTitle">"Media Type Specifications and Registration Procedures"</span>, <span class="seriesInfo">BCP 13</span>, <span class="seriesInfo">RFC 6838</span>, <span class="seriesInfo">DOI 10.17487/RFC6838</span>, <time datetime="2013-01" class="refDate">January 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc6838">https://www.rfc-editor.org/info/rfc6838</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7515">https://www.rfc-editor.org/info/rfc7515</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7942">[RFC7942]</dt>
+        <dd>
+<span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc7942">https://www.rfc-editor.org/info/rfc7942</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8461">[RFC8461]</dt>
+        <dd>
+<span class="refAuthor">Margolis, D.</span>, <span class="refAuthor">Risher, M.</span>, <span class="refAuthor">Ramakrishnan, B.</span>, <span class="refAuthor">Brotman, A.</span>, and <span class="refAuthor">J. Jones</span>, <span class="refTitle">"SMTP MTA Strict Transport Security (MTA-STS)"</span>, <span class="seriesInfo">RFC 8461</span>, <span class="seriesInfo">DOI 10.17487/RFC8461</span>, <time datetime="2018-09" class="refDate">September 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8461">https://www.rfc-editor.org/info/rfc8461</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8552">[RFC8552]</dt>
+        <dd>
+<span class="refAuthor">Crocker, D.</span>, <span class="refTitle">"Scoped Interpretation of DNS Resource Records through "Underscored" Naming of Attribute Leaves"</span>, <span class="seriesInfo">BCP 222</span>, <span class="seriesInfo">RFC 8552</span>, <span class="seriesInfo">DOI 10.17487/RFC8552</span>, <time datetime="2019-03" class="refDate">March 2019</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8552">https://www.rfc-editor.org/info/rfc8552</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8792">[RFC8792]</dt>
+        <dd>
+<span class="refAuthor">Watsen, K.</span>, <span class="refAuthor">Auerswald, E.</span>, <span class="refAuthor">Farrel, A.</span>, and <span class="refAuthor">Q. Wu</span>, <span class="refTitle">"Handling Long Lines in Content of Internet-Drafts and RFCs"</span>, <span class="seriesInfo">RFC 8792</span>, <span class="seriesInfo">DOI 10.17487/RFC8792</span>, <time datetime="2020-06" class="refDate">June 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8792">https://www.rfc-editor.org/info/rfc8792</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9420">[RFC9420]</dt>
+      <dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Beurdouche, B.</span>, <span class="refAuthor">Robert, R.</span>, <span class="refAuthor">Millican, J.</span>, <span class="refAuthor">Omara, E.</span>, and <span class="refAuthor">K. Cohn-Gordon</span>, <span class="refTitle">"The Messaging Layer Security (MLS) Protocol"</span>, <span class="seriesInfo">RFC 9420</span>, <span class="seriesInfo">DOI 10.17487/RFC9420</span>, <time datetime="2023-07" class="refDate">July 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc9420">https://www.rfc-editor.org/info/rfc9420</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</section>
+<div id="future">
+<section id="appendix-A">
+      <h2 id="name-future-work">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-future-work" class="section-name selfRef">Future Work</a>
+      </h2>
+<p id="appendix-A-1">Designed, not implemented, and so not specified here:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A-2.1">
+          <strong>Delivery over HTTPS between hosts.</strong> One request per
+      recipient domain to the policy's endpoint, carrying the message and a
+      second signed object, the delivery, which names the recipients at that
+      domain (Bcc included) and a send time, binding the message to its
+      recipients and giving it freshness; with defined responses and
+      idempotency on (sending domain, id).<a href="#appendix-A-2.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.2">
+          <strong>Upgrade from SMTP.</strong> A sender that finds a recipient
+      domain's record delivers over HTTPS instead.<a href="#appendix-A-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.3">
+          <strong>First contact.</strong> What an unknown sender must bring:
+      open, known contacts only, or an introduction signed by a domain the
+      recipient knows.<a href="#appendix-A-2.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.4">
+          <strong>Attachments by capability URL</strong>, fetched by the
+      recipient before it reports delivered, and an "accepted" receipt.<a href="#appendix-A-2.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.5">
+          <strong>Signing in with an address.</strong> The policy's
+      identity.issuer as an OpenID Connect issuer for the domain's addresses
+      (running at Pidgeon; to be specified separately).<a href="#appendix-A-2.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.6">
+          <strong>The agent card</strong>, final (<a href="#card" class="auto internal xref">Section 3.5</a>):
+      revocation, and cards for agents on hosts other than the
+      implementation's; and a public verification API.<a href="#appendix-A-2.6" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.7">
+          <strong>A second DKIM signature</strong> over the declaration from the
+      customer's own domain.<a href="#appendix-A-2.7" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.8">
+          <strong>End-to-end encryption</strong> with MLS
+      <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>, between mailboxes. Version 0 reserves the
+      message member "enc"; a version 0 receiver rejects a message that
+      carries it.<a href="#appendix-A-2.8" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-A-2.9">
+          <strong>Threading.</strong> Deriving Message-ID, In-Reply-To and
+      References from the message's id and thread.<a href="#appendix-A-2.9" class="pilcrow">¶</a>
+</li>
+      </ul>
+</section>
+</div>
+<div id="second-impl">
+<section id="appendix-B">
+      <h2 id="name-notes-for-a-second-implemen">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-notes-for-a-second-implemen" class="section-name selfRef">Notes for a Second Implementation</a>
+      </h2>
+<p id="appendix-B-1">A receiver that verifies envelopes needs: an Ed25519 library with strict
+    verification, a DNS TXT lookup, an HTTPS client, a JSON parser and a MIME
+    parser. It does not need a JSON canonicaliser. Points that are easy to get
+    wrong:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-B-2.1">Verify the decoded bytes of m. Never re-serialise the parsed JSON and
+      verify that.<a href="#appendix-B-2.1" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-B-2.2">Remove whitespace from every tag value before decoding: the field is
+      folded.<a href="#appendix-B-2.2" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-B-2.3">base64url without padding for Post-Envelope, the policy's keys and
+      receipts; ordinary base64 for Agent-attribution.<a href="#appendix-B-2.3" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-B-2.4">Compare the signed text with the text/plain body after CRLF to LF and
+      trimming trailing whitespace; compare recipients as case-insensitive
+      sets.<a href="#appendix-B-2.4" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-B-2.5">Refuse S &gt;= L and small-order points. The vectors in
+      <a href="#vectors-core" class="auto internal xref">Appendix C</a> fail under a lax verifier.<a href="#appendix-B-2.5" class="pilcrow">¶</a>
+</li>
+        <li class="normal" id="appendix-B-2.6">Rate-limit unknown-kid refetches per domain, across all of your
+      processes.<a href="#appendix-B-2.6" class="pilcrow">¶</a>
+</li>
+      </ul>
+<p id="appendix-B-3">A conformant receiver: verifies every valid vector; refuses every vector
+    marked invalid; on the message in <a href="#vectors" class="auto internal xref">Appendix D</a> reaches "pass"
+    for the envelope given the sender's policy, and "signed" with body "intact"
+    for the declaration given the DKIM record; and reaches
+    <code>domain_mismatch</code> on the refusal vector that changes d.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="vectors-core">
+<section id="appendix-C">
+      <h2 id="name-ed25519-vectors">
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-ed25519-vectors" class="section-name selfRef">Ed25519 Vectors</a>
+      </h2>
+<p id="appendix-C-1">The file ed25519.json, published with post-v0.json, holds RFC 8032's
+    Section 7.1 tests 1 to 3, a protocol message and delivery signed with the
+    seed 0x00..0x1f, a UTF-8 vector, and five refusals: the same JSON with a
+    number written differently (1240.50 as 1240.5), a changed message, a wrong
+    key, S + L (non-canonical S), and the identity point as key and R with
+    S = 0 (passes plain RFC 8032 verification for any message). A conformant
+    verifier accepts exactly those marked valid.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="vectors">
+<section id="appendix-D">
+      <h2 id="name-test-vectors">
+<a href="#appendix-D" class="section-number selfRef">Appendix D. </a><a href="#name-test-vectors" class="section-name selfRef">Test Vectors</a>
+      </h2>
+<p id="appendix-D-1">Every value below is in the file post-v0.json at https://github.com/pidgeon-ai/post, which is authoritative: this appendix is generated from it, and long values are broken into runs of 64 characters for display. Whitespace is not part of any value. Seeds are Ed25519 private keys <span>[<a href="#RFC8032" class="cite xref">RFC8032</a>]</span>, which no real domain uses.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<section id="appendix-D.1">
+        <h3 id="name-keys">
+<a href="#appendix-D.1" class="section-number selfRef">D.1. </a><a href="#name-keys" class="section-name selfRef">Keys</a>
+        </h3>
+<p id="appendix-D.1-1">The sending domain:<a href="#appendix-D.1-1" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.1-2">
+<pre>
+domain: acme.example
+kid:    2026-10-22.1
+seed (hex):
+  000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+pub (base64url):
+  A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
+</pre><a href="#appendix-D.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.1-3">The receiving domain (signs the receipt):<a href="#appendix-D.1-3" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.1-4">
+<pre>
+domain: supplier.example
+kid:    2026-10-01.1
+seed (hex):
+  202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f
+pub (base64url):
+  Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc
+</pre><a href="#appendix-D.1-4" class="pilcrow">¶</a>
+</div>
+</section>
+<section id="appendix-D.2">
+        <h3 id="name-discovery">
+<a href="#appendix-D.2" class="section-number selfRef">D.2. </a><a href="#name-discovery" class="section-name selfRef">Discovery</a>
+        </h3>
+<p id="appendix-D.2-1">The TXT record at _post.acme.example:<a href="#appendix-D.2-1" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.2-2">
+<pre>
+v=post0; id=ae068fffefd849fa
+</pre><a href="#appendix-D.2-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.2-3">The policy served at https://post.acme.example/.well-known/post.json, exactly (it ends with a line feed). Its SHA-256, in hex, begins with the TXT record's id:<a href="#appendix-D.2-3" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.2-4">
+<pre>
+{
+  "v": "post0",
+  "max_age": 86400,
+  "endpoint": "https://post.pidgeon.ai/v0",
+  "keys": [
+    {
+      "kid": "2026-10-22.1",
+      "alg": "Ed25519",
+      "pub": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "not_after": "2027-10-22T00:00:00Z"
+    }
+  ],
+  "first_contact": {
+    "accept": [
+      "known"
+    ]
+  },
+  "identity": {
+    "issuer": "https://post.acme.example"
+  },
+  "features": []
+}
+</pre><a href="#appendix-D.2-4" class="pilcrow">¶</a>
+</div>
+</section>
+<section id="appendix-D.3">
+        <h3 id="name-the-signed-message">
+<a href="#appendix-D.3" class="section-number selfRef">D.3. </a><a href="#name-the-signed-message" class="section-name selfRef">The Signed Message</a>
+        </h3>
+<p id="appendix-D.3-1">The message bytes, UTF-8, shown on one line per field for display only; the signed bytes contain no line breaks and no spaces outside strings:<a href="#appendix-D.3-1" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.3-2">
+<pre>
+{"v":"post0",
+"id":"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b",
+"thread":{"id":"2b8e6f10-3c4d-4a5b-8c9d-0e1f2a3b4c5d"},
+"sender":{"address":"billing-agent@acme.example",
+"kind":"agent",
+"on_behalf_of":"Acme Ltd"},
+"to":["ap@supplier.example"],
+"cc":[],
+"created_at":"2026-10-22T14:03:11Z",
+"subject":"Invoice INV-2026-0418",
+"parts":[{"role":"text",
+"type":"text/plain",
+"body":"Hello, our invoice for October is attached.\n\nAcme Ltd"},
+{"role":"data",
+"schema":"https://schema.org/Invoice",
+"body":{"identifier":"INV-2026-0418",
+"totalPaymentDue":{"price":1240.5,
+"priceCurrency":"EUR"}}}]}
+</pre><a href="#appendix-D.3-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.3-3">SHA-256 of the message bytes, in hex:<a href="#appendix-D.3-3" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.3-4">
+<pre>
+1cc77018b70833dd109ad6634957f048cc2e677d42a6fc8003573eac3904c3ac
+</pre><a href="#appendix-D.3-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.3-5">The sender's Ed25519 signature over the message bytes, base64url:<a href="#appendix-D.3-5" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.3-6">
+<pre>
+X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhr
+GD16ENe6mp2Lq_14fCHTBg
+</pre><a href="#appendix-D.3-6" class="pilcrow">¶</a>
+</div>
+</section>
+<section id="appendix-D.4">
+        <h3 id="name-the-agent-declaration-2">
+<a href="#appendix-D.4" class="section-number selfRef">D.4. </a><a href="#name-the-agent-declaration-2" class="section-name selfRef">The Agent Declaration</a>
+        </h3>
+<p id="appendix-D.4-1">The three fields, as written by an agent sending for "Acme Ltd":<a href="#appendix-D.4-1" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.4-2">
+<pre>
+Agent-of: "Acme Ltd" &lt;agents+k7m2p9q4rs@pidgeon.email&gt;
+Agent-attribution:
+  eyJ2IjoxLCJraW5kIjoiYWdlbnQiLCJvbl9iZWhhbGZfb2YiOiJBY21lIEx0ZCIs
+  InBsYXRmb3JtIjoicGlkZ2Vvbi5haSIsInZlcmlmeSI6Imh0dHBzOi8vcGlkZ2Vv
+  bi5haS92ZXJpZnkvcTJWMGFYTjBMWFpsWTNSdmNpMHdNUSJ9
+AI-Disclosure: mode=ai-originated
+</pre><a href="#appendix-D.4-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.4-3">Agent-attribution, decoded:<a href="#appendix-D.4-3" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.4-4">
+<pre>
+{"v":1,
+"kind":"agent",
+"on_behalf_of":"Acme Ltd",
+"platform":"pidgeon.ai",
+"verify":"https://pidgeon.ai/verify/q2V0aXN0LXZlY3Rvci0wMQ"}
+</pre><a href="#appendix-D.4-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.4-5">The DKIM key record, at spec-vector._domainkey.pidgeon.email:<a href="#appendix-D.4-5" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.4-6">
+<pre>
+v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3p
+sffalJyYCWMhXZYhQMcYhjOvK9xs+xSt0j0nvKzhe8WEH/GT2yi2wxYHUDA5g8TV
+0/P6YVqc8EUrDxFTuI/B7Pfn8qwYO9JZC8Ue5jsn8KJNtfDPOy7mZl53J15alind
+PHW4379zLne/52mceniWYsfrVPZ4wPZIejVxycpjrJdz2V06y3QOwgX/XROLR8aT
+7hNdICtZmw5+j0+aJoCHIBItsVOpQ7DjUfj+FLOfdkhLxOyuAQMqG8ThYg8KrGyA
+9r8afjrxyLio7IK29cDcJEBG/5p+Dg/5EM+uUqBVpm8cd09lHAPT/r2TxVAHkrMT
+bhlXCV5Rud8R1psMQBbQIDAQAB
+</pre><a href="#appendix-D.4-6" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.4-7">The whole message as a receiver sees it, DKIM-signed with that key and carrying the Post-Envelope field. Long lines are wrapped as in <span>[<a href="#RFC8792" class="cite xref">RFC8792</a>]</span>; in post-v0.json each line ends with CRLF and is unbroken. DKIM verification of it passes:<a href="#appendix-D.4-7" class="pilcrow">¶</a></p>
+<div class="breakable sourcecode" id="appendix-D.4-8">
+<pre>
+NOTE: '\' line wrapping per RFC 8792
+
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pidgeon.ema\
+il;
+ h=AI-Disclosure: Agent-attribution: Agent-of: Content-Type: MIME-V\
+ersion:
+ Subject: To: From; q=dns/txt; s=spec-vector; t=1792677791;
+ bh=h4aW45H/PviD6Wxz3VKF+uGLK4NFcHTSrYVus1v7334=;
+ b=e6GmpfzNvJbAiYzBJIVI6G7/3Qmaen8/fAjrM5C1lI/QSlww4/VgInVTkj0rJjju\
+egdTEQeiN
+ z4JwVvPjmF5WJbOTufF5rPrlDt8unqlIKgs8AZdOWOFJkWEQI5SaWcgjloveOmyfim\
+fhuGIvjrQ
+ ZLZ5S9tDv3ionWQJW8U+At3RgGdDGQs4its6InpU0/XBeeNyRlrtT9wBaAMBWbxtDq\
+urgBU1ovJ
+ vD8jeqcVcIDCSAZb1dzONKcGtkYq8vf0Bcsv3LqggaxxWCRDR1D0FOcSJ63b98xDrc\
+sq58846mz
+ 8I3FzoQl942UjeOTNJ5cw/CZdk4uQ5b7uSJh7NjWStrg==
+From: Acme Billing &lt;billing-agent@acme.example&gt;
+To: ap@supplier.example
+Subject: Invoice INV-2026-0418
+Date: Thu, 22 Oct 2026 14:03:11 +0000
+Message-ID: &lt;7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b@acme.example&gt;
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Agent-of: "Acme Ltd" &lt;agents+k7m2p9q4rs@pidgeon.email&gt;
+Agent-attribution: eyJ2IjoxLCJraW5kIjoiYWdlbnQiLCJvbl9iZWhhbGZfb2Yi\
+OiJBY21lIEx0ZCIsInBsYXRmb3JtIjoicGlkZ2Vvbi5haSIsInZlcmlmeSI6Imh0dHB\
+zOi8vcGlkZ2Vvbi5haS92ZXJpZnkvcTJWMGFYTjBMWFpsWTNSdmNpMHdNUSJ9
+AI-Disclosure: mode=ai-originated
+Post-Envelope: v=post0; d=acme.example; k=2026-10-22.1;
+ s=X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhr\
+GD16ENe6mp2L
+ q_14fCHTBg;
+ m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQy\
+ZTNmNGE1YiIs
+ InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNG\
+M1ZCJ9LCJz
+ ZW5kZXIiOnsiYWRkcmVzcyI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwia2\
+luZCI6ImFn
+ ZW50Iiwib25fYmVoYWxmX29mIjoiQWNtZSBMdGQifSwidG8iOlsiYXBAc3VwcGxpZX\
+IuZXhhbXBs
+ ZSJdLCJjYyI6W10sImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTIyVDE0OjAzOjExWiIsIn\
+N1YmplY3Qi
+ OiJJbnZvaWNlIElOVi0yMDI2LTA0MTgiLCJwYXJ0cyI6W3sicm9sZSI6InRleHQiLC\
+J0eXBlIjoi
+ dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZX\
+IgaXMgYXR0
+ YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dH\
+BzOi8vc2No
+ ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMD\
+QxOCIsInRv
+ dGFsUGF5bWVudER1ZSI6eyJwcmljZSI6MTI0MC41LCJwcmljZUN1cnJlbmN5IjoiRV\
+VSIn19fV19
+
+Hello, our invoice for October is attached.
+
+Acme Ltd
+</pre><a href="#appendix-D.4-8" class="pilcrow">¶</a>
+</div>
+</section>
+<section id="appendix-D.5">
+        <h3 id="name-the-agent-card-2">
+<a href="#appendix-D.5" class="section-number selfRef">D.5. </a><a href="#name-the-agent-card-2" class="section-name selfRef">The Agent Card</a>
+        </h3>
+<p id="appendix-D.5-1">The card for the sending address, signed with the sending domain's key. The payload:<a href="#appendix-D.5-1" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.5-2">
+<pre>
+{
+  "iss": "https://post.acme.example",
+  "sub": "id_7Hq2Mx9Kp4Rt",
+  "iat": 1792677791,
+  "exp": 1792764191,
+  "v": "post0",
+  "address": "billing-agent@acme.example",
+  "kind": "agent",
+  "on_behalf_of": "Acme Ltd",
+  "operator": {
+    "domain": "acme.example",
+    "verified": true
+  },
+  "created_at": "2026-09-01T09:00:00Z",
+  "keys": [
+    {
+      "type": "post",
+      "domain": "acme.example",
+      "kid": "2026-10-22.1"
+    },
+    {
+      "type": "dkim",
+      "domain": "pidgeon.email",
+      "selector": "spec-vector"
+    }
+  ],
+  "reputation": {
+    "standing": "established",
+    "since": "2026-09"
+  },
+  "url": "https://pidgeon.ai/api/v1/cards/id_7Hq2Mx9Kp4Rt"
+}
+</pre><a href="#appendix-D.5-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.5-3">The compact JWS, whose signature verifies under the key above:<a href="#appendix-D.5-3" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.5-4">
+<pre>
+eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWNhcmQrand0Iiwia2lkIjoiMjAy
+Ni0xMC0yMi4xIn0.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwi
+c3ViIjoiaWRfN0hxMk14OUtwNFJ0IiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3
+OTI3NjQxOTEsInYiOiJwb3N0MCIsImFkZHJlc3MiOiJiaWxsaW5nLWFnZW50QGFj
+bWUuZXhhbXBsZSIsImtpbmQiOiJhZ2VudCIsIm9uX2JlaGFsZl9vZiI6IkFjbWUg
+THRkIiwib3BlcmF0b3IiOnsiZG9tYWluIjoiYWNtZS5leGFtcGxlIiwidmVyaWZp
+ZWQiOnRydWV9LCJjcmVhdGVkX2F0IjoiMjAyNi0wOS0wMVQwOTowMDowMFoiLCJr
+ZXlzIjpbeyJ0eXBlIjoicG9zdCIsImRvbWFpbiI6ImFjbWUuZXhhbXBsZSIsImtp
+ZCI6IjIwMjYtMTAtMjIuMSJ9LHsidHlwZSI6ImRraW0iLCJkb21haW4iOiJwaWRn
+ZW9uLmVtYWlsIiwic2VsZWN0b3IiOiJzcGVjLXZlY3RvciJ9XSwicmVwdXRhdGlv
+biI6eyJzdGFuZGluZyI6ImVzdGFibGlzaGVkIiwic2luY2UiOiIyMDI2LTA5In0s
+InVybCI6Imh0dHBzOi8vcGlkZ2Vvbi5haS9hcGkvdjEvY2FyZHMvaWRfN0hxMk14
+OUtwNFJ0In0.Sj3Z4oJJhmkGRzPoCuBr9DO_yF1Pw1mjVhYtdQMsFPen9W71JfRR
+N4lIld9VfhvWW-fi7bBP_c-mcNLw0i0bDw
+</pre><a href="#appendix-D.5-4" class="pilcrow">¶</a>
+</div>
+</section>
+<section id="appendix-D.6">
+        <h3 id="name-a-signed-receipt">
+<a href="#appendix-D.6" class="section-number selfRef">D.6. </a><a href="#name-a-signed-receipt" class="section-name selfRef">A Signed Receipt</a>
+        </h3>
+<p id="appendix-D.6-1">Specified by this document, not yet emitted by any implementation. The receipt bytes:<a href="#appendix-D.6-1" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.6-2">
+<pre>
+{"v":"post0",
+"message_id":"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b",
+"from_domain":"acme.example",
+"recipient":"ap@supplier.example",
+"kind":"delivered",
+"at":"2026-10-22T14:03:13Z"}
+</pre><a href="#appendix-D.6-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-D.6-3">As carried (<a href="#receipt-wire" class="auto internal xref">Section 5.4.2</a>), with receipt and sig in base64url:<a href="#appendix-D.6-3" class="pilcrow">¶</a></p>
+<div class="sourcecode" id="appendix-D.6-4">
+<pre>
+v: post0
+d: supplier.example
+kid: 2026-10-01.1
+receipt:
+  eyJ2IjoicG9zdDAiLCJtZXNzYWdlX2lkIjoiN2YxYzJhOWUtNGIzZC00ZTVmLTlh
+  OGItMGMxZDJlM2Y0YTViIiwiZnJvbV9kb21haW4iOiJhY21lLmV4YW1wbGUiLCJy
+  ZWNpcGllbnQiOiJhcEBzdXBwbGllci5leGFtcGxlIiwia2luZCI6ImRlbGl2ZXJl
+  ZCIsImF0IjoiMjAyNi0xMC0yMlQxNDowMzoxM1oifQ
+sig:
+  EoSooccSPTmZ4ca_n0cnEnnN8NCUTZj3fXoTITIgMwaFSEni-zVAULqzLwNX3DDh
+  MmaymPDz6jvbswUU4J07Dw
+</pre><a href="#appendix-D.6-4" class="pilcrow">¶</a>
+</div>
+</section>
+</section>
+</div>
+<div id="open">
+<section id="appendix-E">
+      <h2 id="name-open-questions">
+<a href="#name-open-questions" class="section-name selfRef">Open Questions</a>
+      </h2>
+<p id="appendix-E-1">This section is to be removed before publishing as an RFC.<a href="#appendix-E-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-E-2">
+      <li id="appendix-E-2.1">The agent card (<a href="#card" class="auto internal xref">Section 3.5</a>): a JWS where every other
+      signed object here is exact JSON bytes with a detached signature;
+      whether exp of a day is enough without revocation; and its well-known
+      path.<a href="#appendix-E-2.1" class="pilcrow">¶</a>
+</li>
+        <li id="appendix-E-2.2">Whether the receipt names the sending domain (this draft) or only
+      the message id.<a href="#appendix-E-2.2" class="pilcrow">¶</a>
+</li>
+        <li id="appendix-E-2.3">Whether AI-Disclosure should be used in mail while its draft is
+      HTTP-only and expired, or replaced by an Agent-attribution member.<a href="#appendix-E-2.3" class="pilcrow">¶</a>
+</li>
+        <li id="appendix-E-2.4">Whether the envelope should carry the declaration's verify link, so
+      the envelope alone leads to the card.<a href="#appendix-E-2.4" class="pilcrow">¶</a>
+</li>
+        <li id="appendix-E-2.5">Intended status (Experimental here) and stream.<a href="#appendix-E-2.5" class="pilcrow">¶</a>
+</li>
+      </ol>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-F">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Patrick de Castro Neuhaus</span></div>
+<div dir="auto" class="left"><span class="org">Pidgeon</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:patrick@pidgeon.ai" class="email">patrick@pidgeon.ai</a>
+</div>
+<div class="url">
+<span>URI:</span>
+<a href="https://pidgeon.ai" class="url">https://pidgeon.ai</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

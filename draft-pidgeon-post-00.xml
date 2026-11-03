@@ -1,0 +1,1624 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  The protocol's name, Post (Patrick, 3 November; #536), lives in the two
+  entities below and nowhere else in the prose. The wire labels that carry it
+  are listed in the section "Names on the Wire".
+
+  Render: docs/spec/README.md.
+-->
+<!DOCTYPE rfc SYSTEM "rfc2629-xhtml.ent">
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude" version="3" category="exp" submissionType="IETF" ipr="trust200902" docName="draft-pidgeon-post-00" consensus="false" tocInclude="true" sortRefs="true" symRefs="true">
+  <front>
+    <title abbrev="Post: Signed Agent Identity for Mail">Post: Signed, Verifiable Identity for Software Agents That Send Email</title>
+    <seriesInfo name="Internet-Draft" value="draft-pidgeon-post-00"/>
+    <author fullname="Patrick de Castro Neuhaus" initials="P." surname="de Castro Neuhaus">
+      <organization>Pidgeon</organization>
+      <address>
+        <email>patrick@pidgeon.ai</email>
+        <uri>https://pidgeon.ai</uri>
+      </address>
+    </author>
+    <date year="2026" month="November" day="3"/>
+    <area>Applications and Real-Time</area>
+    <keyword>email</keyword>
+    <keyword>AI agents</keyword>
+    <keyword>attribution</keyword>
+    <keyword>Ed25519</keyword>
+    <abstract>
+      <t>Software agents now send email, and a recipient has no reliable way to
+    tell that a message was written by software, on whose behalf it was sent,
+    or whether the domain it claims to come from stands behind it. This
+    document specifies Post, version 0: an agent declaration carried in
+    ordinary mail and authenticated by an aligned DKIM signature; a per-domain
+    Ed25519 key discovered through DNS and HTTPS; a signed copy of the message
+    in a header field, which a receiver verifies against that key; typed,
+    structured data carried beside the human text; and the format of signed
+    receipts; and a signed card per agent address. Everything specified
+    here, except the signed receipt, is implemented and running in
+    production; the rest is listed as future work.</t>
+    </abstract>
+    <note removeInRFC="true">
+      <name>About This Draft</name>
+      <t>This draft is written for the IETF 127 hackathon (14-15 November
+    2026). Its source, the test vectors in machine-readable form and the
+    issue tracker are at https://github.com/pidgeon-ai/post.</t>
+    </note>
+  </front>
+  <middle>
+    <section anchor="intro">
+      <name>Introduction</name>
+      <t>An email message written by a software agent looks like any other. A
+  recipient, human or software, cannot tell from the message whether a person
+  or a program wrote it, who is responsible for the program, or whether the
+  claims in the message are the sending domain's or a forger's. DKIM
+  <xref target="RFC6376"/> and DMARC <xref target="RFC9989"/> say that a
+  domain handled a message; they say nothing about what kind of sender wrote
+  it or for whom.</t>
+      <t>Two individual drafts propose header fields for part of this: "Agent
+  Attribution Header Fields" <xref target="I-D.chuang-agent-attribution-header-fields"/>
+  defines Agent-of and Agent-attribution, and the "AI Content Disclosure
+  Header" <xref target="I-D.abaris-aicdh"/> defines AI-Disclosure for HTTP.
+  Work on agent identity in the WIMSE working group
+  (<xref target="I-D.ietf-wimse-arch"/>, <xref target="I-D.ietf-wimse-aims"/>)
+  addresses workloads that call each other over HTTP, not mail.</t>
+      <t>Post builds on the first two and adds what a recipient needs to rely on
+  them:</t>
+      <ol>
+    <li>An agent declaration, using those fields, that a sender emits and a
+    receiver may trust only under a passing, aligned DKIM signature
+    (<xref target="declaration"/>).</li>
+        <li>A signing key per domain, discovered from DNS and HTTPS in the manner
+    of MTA-STS <xref target="RFC8461"/> (<xref target="discovery"/>), and a
+    signed card per agent address
+    (<xref target="card"/>).</li>
+        <li>A verification procedure with defined outcomes
+    (<xref target="verification"/>).</li>
+        <li>Between two endpoints that both implement Post: a signed copy of
+    the message (the "envelope"), carried in a header field, which binds the
+    declared sender to the From address, the recipients, the text, any
+    structured data and every attachment (<xref target="envelope"/>); typed
+    data; and receipts (<xref target="transport"/>).</li>
+      </ol>
+      <t>Nothing here asks a recipient to change mail software. A receiver that
+  implements none of it sees ordinary mail.</t>
+      <section anchor="scope">
+        <name>Scope of Version 0</name>
+        <t>This version specifies only what is implemented, plus the receipt
+    format. In particular, it does not specify delivery over HTTPS between
+    hosts, first-contact policy, end-to-end encryption or a client protocol;
+    see <xref target="future"/>.</t>
+      </section>
+      <section anchor="terms">
+        <name>Conventions and Terminology</name>
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+    "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+    "OPTIONAL" in this document are to be interpreted as described in BCP 14
+    <xref target="RFC2119"/> <xref target="RFC8174"/> when, and only when,
+    they appear in all capitals, as shown here.</t>
+        <dl>
+          <dt>Agent:</dt>
+          <dd>Software that writes and sends messages, typically driven by a
+      language model, on behalf of a person or an organisation.</dd>
+          <dt>Sender kind:</dt>
+          <dd>One of "person", "agent" or "service" (software that is not an
+      agent, such as a workflow or an application). No other value is
+      defined.</dd>
+          <dt>On behalf of:</dt>
+          <dd>A display string naming the party responsible for the sender, such
+      as an organisation's name or its domain.</dd>
+          <dt>Signing domain:</dt>
+          <dd>A domain that publishes a Post policy with at least one key
+      (<xref target="discovery"/>) and signs envelopes for its addresses.</dd>
+          <dt>Host:</dt>
+          <dd>The operator of a signing domain's mail service. A host may serve
+      many domains.</dd>
+          <dt>Receiver:</dt>
+          <dd>Any party that checks a message: a receiving mail system, a mail
+      client, or the agent that reads the message.</dd>
+          <dt>Endpoint:</dt>
+          <dd>A sender or receiver that implements this document.</dd>
+        </dl>
+        <t>base64url is <xref target="RFC4648"/> Section 5 without padding.
+    base64 is <xref target="RFC4648"/> Section 4. Times are
+    <xref target="RFC3339"/> in UTC with a "Z" and no fractional seconds,
+    unless stated otherwise.</t>
+      </section>
+    </section>
+    <section anchor="declaration">
+      <name>The Agent Declaration</name>
+      <t>The agent declaration states, in ordinary header fields, that software
+  wrote the message, what kind of software, and on whose behalf. It is
+  readable by any receiver that understands the fields and requires nothing
+  else of the receiving system.</t>
+      <section anchor="decl-fields">
+        <name>Fields</name>
+        <t>A sender whose kind is "agent" or "service" emits all three of the
+    following. A person sending a message an agent drafted (for example after
+    approving it) emits only AI-Disclosure. A person sending their own message
+    emits none of them.</t>
+        <dl>
+          <dt>Agent-of:</dt>
+          <dd>
+            <t>As defined in <xref target="I-D.chuang-agent-attribution-header-fields"/>:
+      an address-list <xref target="RFC5322"/> naming who is responsible. A
+      Post sender writes exactly one address. The address SHOULD be an
+      alias at the DKIM signing domain that reaches the responsible party
+      rather than a person's own mailbox, so the field does not publish a
+      personal address. Its display name, when present, is the "on behalf
+      of" value.</t>
+          </dd>
+          <dt>Agent-attribution:</dt>
+          <dd>
+            <t>As defined in <xref target="I-D.chuang-agent-attribution-header-fields"/>:
+      base64 of a JSON <xref target="RFC8259"/> object. That draft leaves the
+      object's members to a future registry. Post defines these:</t>
+            <dl spacing="compact">
+              <dt>v</dt>
+              <dd>The integer 1.</dd>
+              <dt>kind</dt>
+              <dd>The sender kind, "agent" or "service".</dd>
+              <dt>on_behalf_of</dt>
+              <dd>A string, or null when the sender declares no
+        responsible party beyond the Agent-of address.</dd>
+              <dt>platform</dt>
+              <dd>The host's domain name.</dd>
+              <dt>verify</dt>
+              <dd>OPTIONAL. An HTTPS URL at which the host describes
+        this message (<xref target="decl-verify-page"/>).</dd>
+              <dt>card</dt>
+              <dd>OPTIONAL. The URL of the sending
+        address's agent card (<xref target="card"/>).</dd>
+            </dl>
+            <t>A receiver MUST ignore members it does not recognise.</t>
+          </dd>
+          <dt>AI-Disclosure:</dt>
+          <dd>
+            <t>The field of <xref target="I-D.abaris-aicdh"/>, a Structured
+      Field Dictionary <xref target="RFC9651"/>, used here in mail with the
+      same syntax. That draft defines the field for HTTP only; this document
+      defines its use in a message header. Values a Post sender writes:</t>
+            <ul spacing="compact">
+              <li>
+                <tt>mode=ai-originated</tt>: kind "agent".</li>
+              <li>
+                <tt>mode=machine-generated</tt>: kind "service".</li>
+              <li>
+                <tt>mode=ai-originated, reviewed-by="person"</tt>: a person sent
+        what an agent drafted.</li>
+            </ul>
+          </dd>
+        </dl>
+        <t>The kind declared is the kind of what sent the message, not of the
+    address. Software sending from an address that belongs to a person MUST
+    declare "agent" (or "service"), never "person"; "person" means a person
+    composed or approved the message.</t>
+        <t>A host MUST remove any of these three fields that a client supplied
+    (for example in SMTP submission <xref target="RFC6409"/>) and emit only its
+    own. Otherwise any user of the host could put a forged declaration under
+    the host's signature.</t>
+      </section>
+      <section anchor="decl-dkim">
+        <name>Authentication by DKIM</name>
+        <t>The declaration is trustworthy only under a DKIM signature that covers
+    it, from a domain that answers for it. A sender:</t>
+        <ul>
+          <li>MUST sign the message with DKIM <xref target="RFC6376"/>, with an
+      "h=" tag that includes Agent-of, Agent-attribution and AI-Disclosure
+      (whichever are present), From, To, Cc, Subject, MIME-Version and
+      Content-Type;</li>
+          <li>MUST use a signing domain ("d=") that is aligned, in the relaxed
+      sense of <xref target="RFC9989"/>, with the domain of the Agent-of
+      address, as <xref target="I-D.chuang-agent-attribution-header-fields"/>
+      Section 1.2.1 requires;</li>
+          <li>SHOULD NOT rely on signing Message-ID or Date when a relay is known
+      to rewrite them. (The implementation in <xref target="impl"/> omits both,
+      because its outbound relay replaces the first and rewrites the second;
+      the signature's "t=" tag dates it.)</li>
+        </ul>
+        <t>That signature is separate from, and in addition to, any signature
+    aligned with the From domain. A host that sends for many domains can
+    answer for every declaration with one signing domain, its own, and the
+    receiver learns from the alignment who is answering.</t>
+      </section>
+      <section anchor="decl-verify-page">
+        <name>The Verify Link</name>
+        <t>When Agent-attribution carries "verify", the URL MUST be HTTPS, MUST be
+    unguessable (the implementation uses 128 random bits) and SHOULD return a
+    description of the message as the host recorded it: the kind, the
+    on-behalf-of value, the From address and when it was sent. It MUST NOT
+    return the subject, the body or the recipients, because the link travels
+    with every forwarded copy. The page says the host sent a message; it does
+    not say that the copy in hand is unchanged. That is what the signatures
+    are for.</t>
+      </section>
+      <section anchor="decl-trust">
+        <name>What a Receiver May Trust</name>
+        <t>A receiver MUST NOT act on Agent-of, Agent-attribution or AI-Disclosure
+    unless <xref target="verify-declaration"/> ends in "signed". Given
+    "signed", the receiver may rely on the host aligned with the Agent-of
+    domain having stated the kind and on-behalf-of value. It has not learned
+    that the statement is true: the host answers for it, as a domain answers
+    for mail it signs.</t>
+      </section>
+    </section>
+    <section anchor="discovery">
+      <name>Domain Keys and the Agent Card</name>
+      <t>A signing domain publishes Ed25519 public keys that sign envelopes
+  (<xref target="envelope"/>) and agent cards (<xref target="card"/>), and
+  will sign receipts (<xref target="receipts"/>). The
+  pattern is MTA-STS's <xref target="RFC8461"/>: a DNS record says the domain
+  takes part, and an HTTPS document on a dedicated host name holds the
+  policy.</t>
+      <section anchor="disc-txt">
+        <name>The DNS Record</name>
+        <t>A TXT record at <tt>_post.&lt;domain&gt;</tt>:</t>
+        <sourcecode type="abnf">
+post-record = "v=post0" *WSP ";" *WSP "id=" policy-id
+policy-id   = 1*(ALPHA / DIGIT)
+</sourcecode>
+        <t>The record says the domain signs. The id is a hint to refetch. A host
+    that controls the domain's DNS SHOULD set it to the first 16 hexadecimal
+    characters of the SHA-256 of the policy's exact bytes, so that it changes
+    whenever the policy does. A host that does not control the DNS writes a
+    fixed id once; nothing depends on it changing
+    (<xref target="disc-refetch"/>). A receiver MUST treat a domain with no
+    such record as not signing.</t>
+      </section>
+      <section anchor="disc-policy">
+        <name>The Policy</name>
+        <t>The policy is served at
+    <tt>https://post.&lt;domain&gt;/.well-known/post.json</tt>
+          <xref target="RFC8615"/>, never at the apex: the apex is usually somebody
+    else's website, while <tt>post.&lt;domain&gt;</tt> can point at the
+    host (for example by a CNAME), which then serves the policy and its TLS
+    certificate. It is a JSON object:</t>
+        <dl>
+          <dt>v</dt>
+          <dd>REQUIRED. The string "post0".</dd>
+          <dt>max_age</dt>
+          <dd>OPTIONAL. Seconds a receiver may hold the policy;
+      86400 if absent.</dd>
+          <dt>keys</dt>
+          <dd>
+            <t>REQUIRED. An array of key objects, each with:</t>
+            <dl spacing="compact">
+              <dt>kid</dt>
+              <dd>An opaque string naming the key, unique within the
+          domain.</dd>
+              <dt>alg</dt>
+              <dd>"Ed25519". A receiver MUST ignore a key with any
+          other value.</dd>
+              <dt>pub</dt>
+              <dd>The 32-byte public key <xref target="RFC8032"/>,
+          base64url.</dd>
+              <dt>not_after</dt>
+              <dd>When the key stops being valid. A receiver
+          MUST ignore a key without a parseable value and MUST refuse a
+          signature made with a key past it.</dd>
+            </dl>
+          </dd>
+          <dt>identity</dt>
+          <dd>OPTIONAL. An object whose member "issuer" is the
+      HTTPS URL of an OpenID Connect issuer for the domain's addresses. Its
+      use is outside this document (<xref target="future"/>).</dd>
+          <dt>endpoint, first_contact, features</dt>
+          <dd>Reserved for delivery over
+      HTTPS (<xref target="future"/>). A version 0 receiver MUST ignore them,
+      and a host MUST NOT list in "features" anything it does not
+      implement.</dd>
+        </dl>
+        <t>A receiver MUST ignore members it does not recognise. A receiver fetching
+    a policy SHOULD use port 443 only, SHOULD NOT follow redirects, SHOULD
+    refuse a host name that resolves to a private or loopback address, and
+    SHOULD refuse a policy larger than 64 KiB.</t>
+      </section>
+      <section anchor="disc-refetch">
+        <name>Caching, Rotation and Refetching</name>
+        <t>A receiver clamps the policy's max_age to between 60 seconds and
+    7 days. It fetches the policy again in exactly these cases, checked in
+    this order:</t>
+        <ol>
+      <li>It holds no policy for the domain.</li>
+          <li>Its copy is at least max_age seconds old.</li>
+          <li>The TXT record's id differs from the one it saw when it fetched.</li>
+          <li>A signature names a kid its copy does not hold, and its copy is at
+      least 60 seconds old. A receiver MUST NOT refetch for an unknown kid more
+      than once a minute per domain, and MUST refuse a kid still unknown after
+      that.</li>
+        </ol>
+        <t>Otherwise it verifies against the copy it holds. This rule is the
+    <tt>discovery::decide</tt> function of the reference core
+    (<xref target="impl"/>).</t>
+        <t>To rotate, a host publishes the new key beside the old one, signs with
+    the new one at once, and sets the old key's not_after to max_age from
+    now, after which it leaves the policy. A receiver holding the old policy
+    meets an unknown kid and refetches. The TXT id is not needed for
+    rotation, which is why a fixed id works for domains whose DNS the host
+    does not hold.</t>
+      </section>
+      <section anchor="disc-sig">
+        <name>Signatures</name>
+        <t>Every Post signature is pure Ed25519 <xref target="RFC8032"/> over
+    the exact bytes being signed. There is no canonical form: the bytes are
+    produced once, signed, and carried and stored as they are; a receiver
+    verifies the bytes it decodes. Two JSON texts equal as JSON but different
+    as bytes do not share a signature.</t>
+        <t>Verification is strict. A receiver MUST reject a signature whose S is
+    not less than the group order L, and MUST reject a public key or an R that
+    is a point of small order. Plain verification as in
+    <xref target="RFC8032"/> accepts some such signatures; the test vectors in
+    <xref target="vectors-core"/> pin the line.</t>
+      </section>
+      <section anchor="card">
+        <name>The Agent Card</name>
+        <t>The card is the newest part of this document (implemented 3 November
+  2026) and the most likely to change. Nothing in
+  <xref target="verification"/> depends on it.</t>
+        <t>The declaration and the envelope give identity per message. The card
+  gives it per address: a document, issued automatically by the address's
+  host, that says what the address is and that a holder can check offline
+  against the issuer's policy.</t>
+        <section anchor="card-format">
+          <name>Format and Signature</name>
+          <t>A card is a JSON Web Signature <xref target="RFC7515"/> in compact
+    serialisation, with protected header <tt>{"alg": "EdDSA", "typ":
+    "agent-card+jwt", "kid": &lt;kid&gt;}</tt>. The kid names a key in the
+    issuer's policy (<xref target="disc-policy"/>), and the signature is
+    Ed25519 over the JWS signing input, verified strictly
+    (<xref target="disc-sig"/>). The typ keeps a card from being mistaken for
+    another token signed by the same key. The payload is a JSON object:</t>
+          <dl>
+            <dt>iss</dt>
+            <dd>
+              <tt>https://post.&lt;issuer domain&gt;</tt>: the
+      address's own domain when it signs, else the host's domain.</dd>
+            <dt>sub</dt>
+            <dd>A stable identifier for the address that the issuer
+      never reassigns, even if the address is deleted and created again.</dd>
+            <dt>iat, exp</dt>
+            <dd>Issued and expiry times, in seconds since the
+      epoch. The implementation issues cards valid for a day and signs one
+      afresh on each fetch.</dd>
+            <dt>v</dt>
+            <dd>"post0".</dd>
+            <dt>address</dt>
+            <dd>The address.</dd>
+            <dt>kind</dt>
+            <dd>"agent" or "service". Never "person": a person's
+      address has no card, and a request for one is answered as for an
+      address that does not exist.</dd>
+            <dt>on_behalf_of</dt>
+            <dd>As in the declaration; omitted when there is
+      nothing to say.</dd>
+            <dt>operator</dt>
+            <dd>
+              <tt>{"domain", "verified"}</tt>: the account's
+      domain and whether the host has verified control of it; omitted when
+      there is none.</dd>
+            <dt>created_at</dt>
+            <dd>When the address was created.</dd>
+            <dt>keys</dt>
+            <dd>What signs the address's mail, so a receiver knows what
+      to expect: <tt>{"type": "post", "domain", "kid"}</tt> for the envelope
+      key and <tt>{"type": "dkim", "domain", "selector"}</tt> for the
+      signature over the declaration.</dd>
+            <dt>reputation</dt>
+            <dd>Coarse, never a count: "standing" is "new" (an
+      address under 30 days old), "established" or "restricted" (suspended),
+      and "since" is a month (YYYY-MM).</dd>
+            <dt>url</dt>
+            <dd>The card's permanent URL.</dd>
+          </dl>
+          <t>A card carries only what the address's own mail already says, or facts
+    about its domain: never an owner, a member, or anything a mailbox
+    holds.</t>
+        </section>
+        <section anchor="card-discovery">
+          <name>Discovery and Checking</name>
+          <ul>
+            <li>From the mail: the Agent-attribution object carries a member
+      "card", the card's URL, beside "verify" (the message's own page). It is
+      under the declaration's DKIM signature.</li>
+            <li>From the address alone: <tt>GET
+      https://post.&lt;domain&gt;/.well-known/post/card?address=&lt;address&gt;</tt>
+      returns <tt>{"object": "agent_card", "url", "jws", "card"}</tt>, where
+      card is the payload decoded for reading and jws is the authority.</li>
+          </ul>
+          <t>To check a card, a receiver takes the domain from iss (the host name
+    without its leading "post." label), obtains that domain's policy
+    and the key named by kid (<xref target="disc-refetch"/>), verifies the
+    signature, checks exp, and checks that address is the address it is
+    asking about. A card from an issuer other than the address's own domain
+    is the host's statement, not the domain owner's.</t>
+          <t>The address lookup lets anyone ask whether an address is an agent's.
+    SMTP already says whether it exists and its mail says the rest; the
+    implementation rate-limits the lookup per client address.</t>
+        </section>
+      </section>
+    </section>
+    <section anchor="verification">
+      <name>Verification</name>
+      <t>A receiver checks the two layers independently. Either may be absent;
+  each has its own outcome.</t>
+      <section anchor="verify-declaration">
+        <name>The Declaration</name>
+        <ol>
+      <li>If the message has none of Agent-of, Agent-attribution and
+      AI-Disclosure, the outcome is "absent".</li>
+          <li>Find DKIM signatures whose "h=" tag covers every instance of those
+      fields that is present, and whose "d=" is aligned (relaxed) with the
+      domain of the Agent-of address. A message with AI-Disclosure alone has
+      no Agent-of to align with: any DKIM signature covering the field
+      qualifies, and its "d=" names the party answering for it. If there is
+      none, the outcome is "absent": the message claims a declaration that
+      nobody answers for, and a receiver SHOULD say so.</li>
+          <li>Verify such a signature <xref target="RFC6376"/>. If none verifies
+      over the header fields, the outcome is "changed".</li>
+          <li>Read the facts only from the field instances the signature covered
+      (in DKIM, the last instances). An instance outside the signature, such
+      as a second Agent-of added in transit, MUST be ignored and SHOULD be
+      reported.</li>
+          <li>If the body hash also verifies, the outcome is "signed", body
+      "intact". If only the header fields were available (for example a
+      pasted header section), it is "signed", body "not checked". If the body
+      hash fails, the declaration is "signed" but the body is "changed", and a
+      receiver MUST NOT treat the body as the sender's.</li>
+        </ol>
+      </section>
+      <section anchor="verify-envelope">
+        <name>The Envelope</name>
+        <t>For a message with a Post-Envelope field, in this order, stopping at
+    the first failure:</t>
+        <ol>
+      <li>
+            <strong>Parse.</strong> Take the field; remove whitespace from each
+      tag value; require v, d, k, s and m, and v equal to "post0". Otherwise:
+      <tt>malformed</tt>.</li>
+          <li>
+            <strong>Domain.</strong> d MUST equal, ignoring case, the domain of
+      the From address. Otherwise: <tt>domain_mismatch</tt>.</li>
+          <li>
+            <strong>Key.</strong> Obtain d's policy and the key named by k by the
+      rules of <xref target="disc-refetch"/>. No TXT record:
+      <tt>not_published</tt>. No usable policy: <tt>policy_unavailable</tt>. A
+      kid still unknown: <tt>unknown_kid</tt>. A key past not_after:
+      <tt>expired_key</tt>.</li>
+          <li>
+            <strong>Signature.</strong> Decode m and s, and verify s over the
+      bytes of m, strictly (<xref target="disc-sig"/>). Otherwise:
+      <tt>bad_signature</tt>.</li>
+          <li>
+            <strong>Message.</strong> The bytes of m MUST be valid UTF-8 JSON
+      with v "post0" and a sender.kind that is a sender kind. Otherwise:
+      <tt>invalid_message</tt>.</li>
+          <li>
+            <t><strong>Agreement with the MIME.</strong> The signed message MUST say
+      what the MIME says, because the MIME is what will be shown and stored:</t>
+            <ul spacing="compact">
+              <li>sender.address equals the From address, ignoring case
+          (<tt>sender_mismatch</tt>);</li>
+              <li>subject equals the decoded Subject
+          (<tt>subject_mismatch</tt>);</li>
+              <li>to and cc, as sets and ignoring case, equal the To and Cc
+          addresses (<tt>recipients_mismatch</tt>);</li>
+              <li>the text part equals the message's text/plain body, after
+          converting CRLF to LF and removing trailing whitespace from both
+          (<tt>text_mismatch</tt>);</li>
+              <li>the data part, if any, equals the typed data in the MIME, and
+          there is typed data in the MIME only if there is a data part
+          (<tt>data_mismatch</tt>);</li>
+              <li>the set of attachment sha256 values equals the set of SHA-256
+          hashes of the files carried; a file the message does not list fails
+          (<tt>attachment_mismatch</tt>).</li>
+            </ul>
+          </li>
+        </ol>
+        <t>If every step passes, the outcome is "pass", and the declared sender
+    is the signed message's sender.kind and sender.on_behalf_of. Anything not
+    checked above, the HTML alternative in particular, is not covered, and a
+    receiver that has a "pass" SHOULD show the text rather than the HTML.</t>
+        <t>Without a Post-Envelope field the outcome is "none".</t>
+      </section>
+      <section anchor="verify-result">
+        <name>Combining the Outcomes</name>
+        <ul>
+          <li>Envelope "pass": the declared sender is the envelope's. It is the
+      sending domain's own statement, and it is bound to the content.</li>
+          <li>Otherwise, declaration "signed": the declared sender is the
+      declaration's, stated by the host aligned with the Agent-of domain.</li>
+          <li>Otherwise: no declared sender. The receiver records the kind and
+      on-behalf-of as unknown, not as "person". Mail arriving this way from
+      ordinary email is said to have origin "smtp".</li>
+        </ul>
+        <t>A failed envelope is evidence that something is wrong. A receiver MUST
+    NOT treat it as "pass", and MAY refuse the message.</t>
+        <t>"pass" proves that the domain wrote this content for these To and Cc
+    recipients. It does not prove that this copy was sent to this receiver
+    (<xref target="sec-replay"/>), and it does not replace DMARC as the test of
+    whether the From domain sent this copy.</t>
+      </section>
+    </section>
+    <section anchor="transport">
+      <name>Between Post Endpoints</name>
+      <t>When both ends implement Post, the same message carries more than
+  either end gets from ordinary mail. Version 0 specifies what an endpoint
+  delivers over ordinary SMTP, or by any equivalent hand-off between two
+  endpoints run by the same host; delivery over HTTPS between hosts is future
+  work.</t>
+      <section anchor="tr-know">
+        <name>Knowing the Other End Speaks Post</name>
+        <t>A sender learns that a recipient's domain signs from the
+    <tt>_post</tt> record (<xref target="disc-txt"/>). Version 0
+    gives no stronger signal: a domain that signs is not thereby promising to
+    verify. A host may know more about addresses it hosts itself.</t>
+      </section>
+      <section anchor="envelope">
+        <name>The Signed Envelope</name>
+        <t>A signing domain signs each message it sends as a JSON document, the
+    "message", and carries it with the signature in a header field. A receiver
+    that holds the domain's key can then check the declared sender and the
+    content against the domain's signature, with no DKIM involved and no
+    dependence on how relays rewrite the MIME.</t>
+        <section anchor="env-message">
+          <name>The Message</name>
+          <t>A JSON object, UTF-8, serialised once. Members:</t>
+          <dl>
+            <dt>v</dt>
+            <dd>"post0".</dd>
+            <dt>id</dt>
+            <dd>An opaque string of at most 64 characters, unique per
+        sending domain.</dd>
+            <dt>thread</dt>
+            <dd>An object: "id", set by whoever starts the
+        conversation and never changed; and "parent", the id of the message
+        replied to, when it is a reply.</dd>
+            <dt>sender</dt>
+            <dd>An object: "address", the From address; "kind", the
+        sender kind; and "on_behalf_of", present only when the sender declares
+        one. These are the same values as the agent declaration's
+        (<xref target="declaration"/>).</dd>
+            <dt>to, cc</dt>
+            <dd>Arrays of addresses, as in the To and Cc fields. Bcc
+        recipients never appear.</dd>
+            <dt>created_at</dt>
+            <dd>When the message was written.</dd>
+            <dt>subject</dt>
+            <dd>The Subject, decoded.</dd>
+            <dt>parts</dt>
+            <dd>
+              <t>An array, in this order:</t>
+              <ul spacing="compact">
+                <li>exactly one text part: <tt>{"role":"text", "type":"text/plain",
+            "body": &lt;the text&gt;}</tt>;</li>
+                <li>at most one data part: <tt>{"role":"data", "schema":
+            &lt;URL&gt;, "body": &lt;any JSON&gt;}</tt>
+            (<xref target="typed-data"/>);</li>
+                <li>one attachment part per file: <tt>{"role":"attachment",
+            "type": &lt;media type&gt;, "name": &lt;file name&gt;, "sha256":
+            &lt;hex&gt;, "size": &lt;octets&gt;}</tt>.</li>
+              </ul>
+            </dd>
+          </dl>
+          <t>The text part is written for a person. A receiving agent MUST treat it
+      as untrusted content to read, never as instructions. HTML is not part of
+      the message and nothing vouches for it.</t>
+          <t>The message carries files by hash only: at the SMTP border the bytes
+      travel in the MIME beside it.</t>
+        </section>
+        <section anchor="env-field">
+          <name>The Post-Envelope Header Field</name>
+          <t>The field's value is a list of tag=value pairs as in DKIM
+      <xref target="RFC6376"/> Section 3.2:</t>
+          <sourcecode type="abnf">
+  post-envelope = "Post-Envelope:" FWS env-tags CRLF
+  env-tags      = env-tag *( ";" FWS env-tag ) [";"]
+  env-tag       = tag-name "=" tag-value   ; RFC 6376, Section 3.2
+</sourcecode>
+          <dl>
+            <dt>v</dt>
+            <dd>"post0".</dd>
+            <dt>d</dt>
+            <dd>The signing domain. It MUST be the domain of the From
+        address.</dd>
+            <dt>k</dt>
+            <dd>The kid of the key that signed.</dd>
+            <dt>s</dt>
+            <dd>The Ed25519 signature over the message bytes,
+        base64url.</dd>
+            <dt>m</dt>
+            <dd>The message bytes, base64url.</dd>
+          </dl>
+          <t>A sender breaks the values of s and m into runs (the implementation
+      uses 76 characters) separated by spaces so the field can be folded; a
+      receiver removes all whitespace from every value before using it, as from
+      a DKIM "b=" tag. A receiver MUST ignore tags it does not recognise.</t>
+          <t>A sender SHOULD NOT emit the field when the message is larger than
+      24 KiB before encoding: some mail systems discard header text past
+      100 KB, which would leave an envelope that cannot be verified. Such a
+      message goes out without one, as does mail from a domain that does not
+      sign.</t>
+        </section>
+        <section anchor="typed-data">
+          <name>Typed Data in MIME</name>
+          <t>A message may carry one piece of structured data beside its text: a
+      "schema", an http or https URL of at most 900 characters naming what the
+      data is (for example <tt>https://schema.org/Offer</tt>), and a "body", any
+      JSON value of at most 64 KiB serialised. It travels:</t>
+          <ul>
+            <li>in the envelope, as the data part;</li>
+            <li>in the MIME, as an alternative inside the message's
+        multipart/alternative, after any HTML alternative and before any
+        calendar part, with type <tt>application/vnd.post+json</tt>,
+        parameters <tt>charset=utf-8</tt> and <tt>schema="&lt;URL&gt;"</tt>, and
+        base64 transfer encoding.</li>
+          </ul>
+          <t>It is an alternative, not an attachment, so a client that does not
+      understand it shows the text or HTML. A receiver lifts the first such part
+      whose content is JSON and whose schema is an http(s) URL into the
+      message's data; anything else stays an attachment.</t>
+          <t>The schema is a label a receiver may check, not something version 0
+      validates. Data is parsed as data. A receiving agent MUST NOT treat it as
+      instructions, and a screening system that reads prose for prompt
+      injection has no reason to read it.</t>
+        </section>
+      </section>
+      <section anchor="tr-delivery">
+        <name>Delivery</name>
+        <t>A sender delivers one copy per recipient, carrying the Post-Envelope
+    field, the typed data alternative and the agent declaration. A receiving
+    endpoint runs <xref target="verify-envelope"/> before storing anything. On
+    "pass" it stores the copy with the declared sender from the envelope and
+    the text (not the HTML), and reports that the signature passed. On
+    failure it MUST NOT store the copy as verified.</t>
+        <t>A receiver keeps the original bytes of a delivered copy where it can,
+    so the signature can be checked again later.</t>
+        <t>The Message-ID SHOULD be the same on every recipient's copy, so a reply
+    from an ordinary mail client threads back to the conversation.</t>
+      </section>
+      <section anchor="receipts">
+        <name>Receipts</name>
+        <t>A receipt tells a sender what happened to a message after it reached
+    the recipient's endpoint. Kinds:</t>
+        <dl>
+          <dt>delivered</dt>
+          <dd>The copy is in the recipient's mailbox.</dd>
+          <dt>read</dt>
+          <dd>The receiving agent or person opened it. A recipient
+      MUST NOT send it unless the recipient's mailbox has opted in, and MAY
+      refuse it without saying why. It is off by default.</dd>
+          <dt>handed_off</dt>
+          <dd>The recipient's conversation passed from software
+      to a person.</dd>
+          <dt>failed</dt>
+          <dd>The message could not be delivered.</dd>
+        </dl>
+        <t>A receiving endpoint sends each kind at most once per received copy.</t>
+        <section anchor="receipt-format">
+          <name>The Receipt</name>
+          <t>A JSON object, signed as exact bytes like the message:</t>
+          <dl>
+            <dt>v</dt>
+            <dd>"post0".</dd>
+            <dt>message_id</dt>
+            <dd>The id of the message (<xref target="env-message"/>).</dd>
+            <dt>from_domain</dt>
+            <dd>The sending domain. Ids are unique per sending
+        domain only, so the pair names the message.</dd>
+            <dt>recipient</dt>
+            <dd>The address whose copy this is.</dd>
+            <dt>kind</dt>
+            <dd>The receipt kind.</dd>
+            <dt>at</dt>
+            <dd>When it happened.</dd>
+          </dl>
+          <t>The recipient's domain signs the bytes with a key from its own
+      policy. A sender that keeps the bytes and the signature can show a third
+      party that the recipient's domain confirmed the event.</t>
+        </section>
+        <section anchor="receipt-wire">
+          <name>Carrying a Receipt</name>
+          <t>A receipt travels as a JSON object with members "v" ("post0"), "d"
+      (the recipient's domain), "kid", "receipt" (the receipt bytes,
+      base64url) and "sig" (the signature, base64url). A receiver of a receipt
+      verifies it as in <xref target="verify-envelope"/> steps 3 and 4, against
+      d's policy, and checks that recipient's domain is d.</t>
+          <t>How a receipt reaches the sender is outside version 0; between
+      addresses on one host it is an internal event. Over HTTPS between hosts
+      it is future work (<xref target="future"/>).</t>
+        </section>
+      </section>
+    </section>
+    <section anchor="names">
+      <name>Names on the Wire</name>
+      <t>These identifiers carry the protocol's name:</t>
+      <table>
+        <thead>
+          <tr>
+            <th>Identifier</th>
+            <th>Where</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <tt>Post-Envelope</tt></td>
+            <td>Header field (<xref target="env-field"/>)</td>
+          </tr>
+          <tr>
+            <td>
+              <tt>post0</tt></td>
+            <td>Version string in every object and record</td>
+          </tr>
+          <tr>
+            <td>
+              <tt>_post</tt></td>
+            <td>DNS label (<xref target="disc-txt"/>)</td>
+          </tr>
+          <tr>
+            <td>
+              <tt>post.&lt;domain&gt;</tt>, <tt>/.well-known/post.json</tt></td>
+            <td>Policy location (<xref target="disc-policy"/>)</td>
+          </tr>
+          <tr>
+            <td>
+              <tt>application/vnd.post+json</tt></td>
+            <td>Media type (<xref target="typed-data"/>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <section anchor="impl">
+      <name>Implementation Status</name>
+      <t>This section is to be removed before publication, as
+  <xref target="RFC7942"/> describes.</t>
+      <t>Pidgeon, an email service for people and software agents, implements
+  everything in this document except the signed receipt (receipts are emitted unsigned, in the receipt's shape, as
+  events to the sender). On 3 November 2026 the agent declaration was on 565
+  of 984 messages sent in the previous 7 days. Every message sent through the
+  API from a signing domain carries Post-Envelope, unless it is over the size
+  limit of <xref target="env-field"/>; messages from a user's own mail client
+  by SMTP submission carry none.
+  Between two Pidgeon addresses on signing domains, copies are delivered
+  directly and verified by <xref target="verify-envelope"/> before they are
+  stored; a copy that fails is refused and sent as ordinary mail.</t>
+      <t>The core is "post-core", in Rust (Apache-2.0), with a WebAssembly
+  binding: Ed25519 signing and strict verification, and the refetch rule of
+  <xref target="disc-refetch"/>. The test vectors in
+  <xref target="vectors"/> are produced from the running code.</t>
+      <t>Pidgeon also runs a public checker for the declaration, which reports the
+  outcomes of <xref target="verify-declaration"/> for a pasted message.</t>
+      <t>Known limits of the implementation: its inbound path from ordinary
+  email does not yet verify Post-Envelope fields from other domains (the
+  remote fetch of <xref target="disc-refetch"/> exists but is not called
+  there); the DKIM signature over the declaration is the host's
+  (d=pidgeon.email), not a second one from a customer's domain; and no
+  receiver other than Pidgeon is known.</t>
+    </section>
+    <section anchor="security">
+      <name>Security Considerations</name>
+      <section anchor="sec-honest">
+        <name>A Signature Is Not a Truth</name>
+        <t>The declaration and the envelope prove who stated something, not that
+    it is true. A domain that lies about its sender's kind is caught only by
+    the reputation of the domain that signed. Receivers SHOULD treat the
+    signing domain, not the declaration, as the accountable party.</t>
+      </section>
+      <section anchor="sec-forgery">
+        <name>Forged Declarations</name>
+        <t>Agent-of and its companions are ordinary header fields anybody can
+    write. They are worth nothing without <xref target="verify-declaration"/>,
+    and a host that signs for many users MUST strip client-written instances
+    (<xref target="decl-fields"/>), or its signature would cover a forgery.</t>
+      </section>
+      <section anchor="sec-replay">
+        <name>Replay</name>
+        <t>The envelope binds the content and the To and Cc recipients, but Bcc
+    recipients are legitimately absent from it, so a receiver cannot tell a
+    copy sent to it by Bcc from a captured message replayed to it. Version 0
+    has no freshness on the envelope: created_at is when the message was
+    written, and a message may be retried for days. A receiver SHOULD NOT
+    treat an envelope "pass" alone as proof that the From domain sent this
+    copy to it; DMARC answers that question for mail that arrives by SMTP.
+    The implementation trusts "pass" as sender authentication only for copies
+    handed over directly by its own sending path, and ignores Post-Envelope on
+    mail that arrives over SMTP. Binding a delivery to its recipients and a
+    time is future work (<xref target="future"/>).</t>
+      </section>
+      <section anchor="sec-keys">
+        <name>Key Compromise and Revocation</name>
+        <t>Revocation is never instant. A stolen key is usable until the host
+    removes it from its policy and every receiver's copy expires, at most the
+    clamped max_age (7 days), and never past the key's not_after. Hosts SHOULD
+    keep max_age short while withdrawing a key. The unknown-kid refetch is
+    rate-limited so that an attacker cannot make a receiver fetch a policy on
+    every message.</t>
+      </section>
+      <section anchor="sec-fetch">
+        <name>Fetching Policies</name>
+        <t>A policy fetch is a request a sender can make a receiver perform. The
+    limits in <xref target="disc-policy"/> (port 443, no redirects, no private
+    addresses, a size cap) prevent its use against the receiver's own network.
+    A policy is trusted only as far as the TLS certificate for
+    <tt>post.&lt;domain&gt;</tt> and the domain's DNS are.</t>
+      </section>
+      <section anchor="sec-injection">
+        <name>Content Written for People, Read by Software</name>
+        <t>The text part and the HTML are untrusted input. A receiving agent MUST
+    NOT follow instructions found in them, whether or not the envelope passes:
+    a signature says who wrote the text, not that it is safe. Typed data is
+    parsed as data.</t>
+      </section>
+      <section anchor="sec-strict">
+        <name>Signature Malleability</name>
+        <t>Strict Ed25519 verification (<xref target="disc-sig"/>) ensures one
+    message has one valid signature per key, and that a weak key cannot make
+    a forged signature pass. Implementations that use a library's default
+    verification SHOULD check it against the vectors.</t>
+      </section>
+    </section>
+    <section anchor="privacy">
+      <name>Privacy Considerations</name>
+      <ul>
+        <li>Agent-of names a responsible party. It SHOULD be an alias rather than
+    a person's mailbox. A host SHOULD NOT derive on_behalf_of from a person's
+    name or address unless that person chose to publish it; the
+    implementation uses an organisation name an owner set, else a verified
+    domain, else nothing.</li>
+        <li>The verify link travels with every forward. It MUST NOT reveal the
+    subject, body or recipients (<xref target="decl-verify-page"/>).</li>
+        <li>The envelope repeats the To and Cc addresses and the text in a header
+    field. It reveals nothing a recipient does not already have, but mail
+    systems that log header fields will log it.</li>
+        <li>A read receipt reveals behaviour. It is off by default and opt-in per
+    mailbox.</li>
+        <li>A policy fetch tells the sending domain's host that some receiver is
+    checking its mail, and roughly when. Caching limits this to once per
+    max_age per receiver.</li>
+      </ul>
+    </section>
+    <section anchor="iana">
+      <name>IANA Considerations</name>
+      <section anchor="iana-headers">
+        <name>Message Header Fields</name>
+        <t>IANA is asked to register in the "Provisional Message Header Field
+    Names" registry <xref target="RFC3864"/>:</t>
+        <dl spacing="compact">
+          <dt>Header field name:</dt>
+          <dd>Post-Envelope</dd>
+          <dt>Applicable protocol:</dt>
+          <dd>mail</dd>
+          <dt>Status:</dt>
+          <dd>provisional</dd>
+          <dt>Specification document:</dt>
+          <dd>this document, <xref target="env-field"/></dd>
+        </dl>
+        <t>and AI-Disclosure, with applicable protocol "mail", status provisional,
+    referring to <xref target="I-D.abaris-aicdh"/> for syntax and this document,
+    <xref target="decl-fields"/>, for its use in mail. Agent-of and
+    Agent-attribution are left to <xref target="I-D.chuang-agent-attribution-header-fields"/>,
+    which requests no registration yet.</t>
+      </section>
+      <section anchor="iana-wellknown">
+        <name>Well-Known URI</name>
+        <t>IANA is asked to register "post.json" in the "Well-Known URIs"
+    registry <xref target="RFC8615"/>, status provisional, referring to
+    <xref target="disc-policy"/>. The card lookup
+    (<xref target="card-discovery"/>) uses "post/card"; whether it
+    becomes a second registration or moves under one name is open.</t>
+      </section>
+      <section anchor="iana-media">
+        <name>Media Type</name>
+        <t>The media type application/vnd.post+json is to be registered in
+    the vendor tree <xref target="RFC6838"/>, with required parameter
+    "schema" (an http or https URL) and optional "charset" ("utf-8").</t>
+      </section>
+      <section anchor="iana-underscore">
+        <name>Underscored DNS Node Name</name>
+        <t>IANA is asked to add "_post", RR type TXT, to the "Underscored and
+    Globally Scoped DNS Node Names" registry <xref target="RFC8552"/>,
+    referring to <xref target="disc-txt"/>.</t>
+      </section>
+      <section anchor="iana-attribution">
+        <name>Agent-attribution Members</name>
+        <t>When the registry anticipated by
+    <xref target="I-D.chuang-agent-attribution-header-fields"/> exists, the
+    members in <xref target="decl-fields"/> are to be registered in it.</t>
+      </section>
+    </section>
+  </middle>
+  <back>
+    <references>
+      <name>References</name>
+      <references>
+        <name>Normative References</name>
+        <reference anchor="RFC2119" target="https://www.rfc-editor.org/info/rfc2119" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml">
+          <front>
+            <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+            <author fullname="S. Bradner" initials="S." surname="Bradner"/>
+            <date month="March" year="1997"/>
+            <abstract>
+              <t>In many standards track documents several words are used to signify the requirements in the specification. These words are often capitalized. This document defines these words as they should be interpreted in IETF documents. This document specifies an Internet Best Current Practices for the Internet Community, and requests discussion and suggestions for improvements.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="2119"/>
+          <seriesInfo name="DOI" value="10.17487/RFC2119"/>
+        </reference>
+        <reference anchor="RFC8174" target="https://www.rfc-editor.org/info/rfc8174" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml">
+          <front>
+            <title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+            <author fullname="B. Leiba" initials="B." surname="Leiba"/>
+            <date month="May" year="2017"/>
+            <abstract>
+              <t>RFC 2119 specifies common key words that may be used in protocol specifications. This document aims to reduce the ambiguity by clarifying that only UPPERCASE usage of the key words have the defined special meanings.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="8174"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8174"/>
+        </reference>
+        <reference anchor="RFC3339" target="https://www.rfc-editor.org/info/rfc3339" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.3339.xml">
+          <front>
+            <title>Date and Time on the Internet: Timestamps</title>
+            <author fullname="G. Klyne" initials="G." surname="Klyne"/>
+            <author fullname="C. Newman" initials="C." surname="Newman"/>
+            <date month="July" year="2002"/>
+            <abstract>
+              <t>This document defines a date and time format for use in Internet protocols that is a profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="3339"/>
+          <seriesInfo name="DOI" value="10.17487/RFC3339"/>
+        </reference>
+        <reference anchor="RFC4648" target="https://www.rfc-editor.org/info/rfc4648" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.4648.xml">
+          <front>
+            <title>The Base16, Base32, and Base64 Data Encodings</title>
+            <author fullname="S. Josefsson" initials="S." surname="Josefsson"/>
+            <date month="October" year="2006"/>
+            <abstract>
+              <t>This document describes the commonly used base 64, base 32, and base 16 encoding schemes. It also discusses the use of line-feeds in encoded data, use of padding in encoded data, use of non-alphabet characters in encoded data, use of different encoding alphabets, and canonical encodings. [STANDARDS-TRACK]</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="4648"/>
+          <seriesInfo name="DOI" value="10.17487/RFC4648"/>
+        </reference>
+        <reference anchor="RFC5322" target="https://www.rfc-editor.org/info/rfc5322" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.5322.xml">
+          <front>
+            <title>Internet Message Format</title>
+            <author fullname="P. Resnick" initials="P." role="editor" surname="Resnick"/>
+            <date month="October" year="2008"/>
+            <abstract>
+              <t>This document specifies the Internet Message Format (IMF), a syntax for text messages that are sent between computer users, within the framework of "electronic mail" messages. This specification is a revision of Request For Comments (RFC) 2822, which itself superseded Request For Comments (RFC) 822, "Standard for the Format of ARPA Internet Text Messages", updating it to reflect current practice and incorporating incremental changes that were specified in other RFCs. [STANDARDS-TRACK]</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="5322"/>
+          <seriesInfo name="DOI" value="10.17487/RFC5322"/>
+        </reference>
+        <reference anchor="RFC6376" target="https://www.rfc-editor.org/info/rfc6376" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6376.xml">
+          <front>
+            <title>DomainKeys Identified Mail (DKIM) Signatures</title>
+            <author fullname="D. Crocker" initials="D." role="editor" surname="Crocker"/>
+            <author fullname="T. Hansen" initials="T." role="editor" surname="Hansen"/>
+            <author fullname="M. Kucherawy" initials="M." role="editor" surname="Kucherawy"/>
+            <date month="September" year="2011"/>
+            <abstract>
+              <t>DomainKeys Identified Mail (DKIM) permits a person, role, or organization that owns the signing domain to claim some responsibility for a message by associating the domain with the message. This can be an author's organization, an operational relay, or one of their agents. DKIM separates the question of the identity of the Signer of the message from the purported author of the message. Assertion of responsibility is validated through a cryptographic signature and by querying the Signer's domain directly to retrieve the appropriate public key. Message transit from author to recipient is through relays that typically make no substantive change to the message content and thus preserve the DKIM signature.</t>
+              <t>This memo obsoletes RFC 4871 and RFC 5672. [STANDARDS-TRACK]</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="76"/>
+          <seriesInfo name="RFC" value="6376"/>
+          <seriesInfo name="DOI" value="10.17487/RFC6376"/>
+        </reference>
+        <reference anchor="RFC8032" target="https://www.rfc-editor.org/info/rfc8032" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8032.xml">
+          <front>
+            <title>Edwards-Curve Digital Signature Algorithm (EdDSA)</title>
+            <author fullname="S. Josefsson" initials="S." surname="Josefsson"/>
+            <author fullname="I. Liusvaara" initials="I." surname="Liusvaara"/>
+            <date month="January" year="2017"/>
+            <abstract>
+              <t>This document describes elliptic curve signature scheme Edwards-curve Digital Signature Algorithm (EdDSA). The algorithm is instantiated with recommended parameters for the edwards25519 and edwards448 curves. An example implementation and test vectors are provided.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8032"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8032"/>
+        </reference>
+        <reference anchor="RFC8259" target="https://www.rfc-editor.org/info/rfc8259" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8259.xml">
+          <front>
+            <title>The JavaScript Object Notation (JSON) Data Interchange Format</title>
+            <author fullname="T. Bray" initials="T." role="editor" surname="Bray"/>
+            <date month="December" year="2017"/>
+            <abstract>
+              <t>JavaScript Object Notation (JSON) is a lightweight, text-based, language-independent data interchange format. It was derived from the ECMAScript Programming Language Standard. JSON defines a small set of formatting rules for the portable representation of structured data.</t>
+              <t>This document removes inconsistencies with other specifications of JSON, repairs specification errors, and offers experience-based interoperability guidance.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="90"/>
+          <seriesInfo name="RFC" value="8259"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8259"/>
+        </reference>
+        <reference anchor="RFC8615" target="https://www.rfc-editor.org/info/rfc8615" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8615.xml">
+          <front>
+            <title>Well-Known Uniform Resource Identifiers (URIs)</title>
+            <author fullname="M. Nottingham" initials="M." surname="Nottingham"/>
+            <date month="May" year="2019"/>
+            <abstract>
+              <t>This memo defines a path prefix for "well-known locations", "/.well-known/", in selected Uniform Resource Identifier (URI) schemes.</t>
+              <t>In doing so, it obsoletes RFC 5785 and updates the URI schemes defined in RFC 7230 to reserve that space. It also updates RFC 7595 to track URI schemes that support well-known URIs in their registry.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8615"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8615"/>
+        </reference>
+        <reference anchor="RFC9651" target="https://www.rfc-editor.org/info/rfc9651" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9651.xml">
+          <front>
+            <title>Structured Field Values for HTTP</title>
+            <author fullname="M. Nottingham" initials="M." surname="Nottingham"/>
+            <author fullname="P-H. Kamp" surname="P-H. Kamp"/>
+            <date month="September" year="2024"/>
+            <abstract>
+              <t>This document describes a set of data types and associated algorithms that are intended to make it easier and safer to define and handle HTTP header and trailer fields, known as "Structured Fields", "Structured Headers", or "Structured Trailers". It is intended for use by specifications of new HTTP fields.</t>
+              <t>This document obsoletes RFC 8941.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9651"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9651"/>
+        </reference>
+        <reference anchor="RFC9989" target="https://www.rfc-editor.org/info/rfc9989" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9989.xml">
+          <front>
+            <title>Domain-Based Message Authentication, Reporting, and Conformance (DMARC)</title>
+            <author fullname="T. Herr" initials="T." role="editor" surname="Herr"/>
+            <author fullname="J. Levine" initials="J." role="editor" surname="Levine"/>
+            <date month="May" year="2026"/>
+            <abstract>
+              <t>This document describes the Domain-based Message Authentication, Reporting, and Conformance (DMARC) protocol.</t>
+              <t>DMARC permits the owner of an email's Author Domain to enable validation of the domain's use to indicate the Domain Owner's or Public Suffix Operator's message handling preference regarding failed validation and to request reports about the use of the domain name. Mail-receiving organizations can use this information when evaluating handling choices for incoming mail.</t>
+              <t>This document obsoletes RFCs 7489 and 9091.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9989"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9989"/>
+        </reference>
+        <reference anchor="I-D.chuang-agent-attribution-header-fields" target="https://datatracker.ietf.org/doc/draft-chuang-agent-attribution-header-fields/00/">
+          <front>
+            <title>Agent Attribution Header Fields</title>
+            <author initials="W." surname="Chuang" fullname="Wei Chuang">
+              <organization>Google</organization>
+            </author>
+            <author initials="E." surname="Gustafsson" fullname="Emil Gustafsson">
+              <organization>Google</organization>
+            </author>
+            <date year="2026" month="June" day="19"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-chuang-agent-attribution-header-fields-00"/>
+        </reference>
+        <reference anchor="I-D.abaris-aicdh" target="https://datatracker.ietf.org/doc/draft-abaris-aicdh/01/">
+          <front>
+            <title>AI Content Disclosure Header</title>
+            <author initials="D." surname="Abaris" fullname="Doğu Abaris"/>
+            <date year="2026" month="January" day="30"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-abaris-aicdh-01"/>
+        </reference>
+      </references>
+      <references>
+        <name>Informative References</name>
+        <reference anchor="RFC3864" target="https://www.rfc-editor.org/info/rfc3864" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.3864.xml">
+          <front>
+            <title>Registration Procedures for Message Header Fields</title>
+            <author fullname="G. Klyne" initials="G." surname="Klyne"/>
+            <author fullname="M. Nottingham" initials="M." surname="Nottingham"/>
+            <author fullname="J. Mogul" initials="J." surname="Mogul"/>
+            <date month="September" year="2004"/>
+            <abstract>
+              <t>This specification defines registration procedures for the message header fields used by Internet mail, HTTP, Netnews and other applications. This document specifies an Internet Best Current Practices for the Internet Community, and requests discussion and suggestions for improvements.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="90"/>
+          <seriesInfo name="RFC" value="3864"/>
+          <seriesInfo name="DOI" value="10.17487/RFC3864"/>
+        </reference>
+        <reference anchor="RFC6409" target="https://www.rfc-editor.org/info/rfc6409" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6409.xml">
+          <front>
+            <title>Message Submission for Mail</title>
+            <author fullname="R. Gellens" initials="R." surname="Gellens"/>
+            <author fullname="J. Klensin" initials="J." surname="Klensin"/>
+            <date month="November" year="2011"/>
+            <abstract>
+              <t>This memo splits message submission from message relay, allowing each service to operate according to its own rules (for security, policy, etc.), and specifies what actions are to be taken by a submission server.</t>
+              <t>Message relay is unaffected, and continues to use SMTP over port 25.</t>
+              <t>When conforming to this document, message submission uses the protocol specified here, normally over port 587.</t>
+              <t>This separation of function offers a number of benefits, including the ability to apply specific security or policy requirements. [STANDARDS-TRACK]</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="72"/>
+          <seriesInfo name="RFC" value="6409"/>
+          <seriesInfo name="DOI" value="10.17487/RFC6409"/>
+        </reference>
+        <reference anchor="RFC6838" target="https://www.rfc-editor.org/info/rfc6838" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.6838.xml">
+          <front>
+            <title>Media Type Specifications and Registration Procedures</title>
+            <author fullname="N. Freed" initials="N." surname="Freed"/>
+            <author fullname="J. Klensin" initials="J." surname="Klensin"/>
+            <author fullname="T. Hansen" initials="T." surname="Hansen"/>
+            <date month="January" year="2013"/>
+            <abstract>
+              <t>This document defines procedures for the specification and registration of media types for use in HTTP, MIME, and other Internet protocols. This memo documents an Internet Best Current Practice.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="13"/>
+          <seriesInfo name="RFC" value="6838"/>
+          <seriesInfo name="DOI" value="10.17487/RFC6838"/>
+        </reference>
+        <reference anchor="RFC7942" target="https://www.rfc-editor.org/info/rfc7942" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7942.xml">
+          <front>
+            <title>Improving Awareness of Running Code: The Implementation Status Section</title>
+            <author fullname="Y. Sheffer" initials="Y." surname="Sheffer"/>
+            <author fullname="A. Farrel" initials="A." surname="Farrel"/>
+            <date month="July" year="2016"/>
+            <abstract>
+              <t>This document describes a simple process that allows authors of Internet-Drafts to record the status of known implementations by including an Implementation Status section. This will allow reviewers and working groups to assign due consideration to documents that have the benefit of running code, which may serve as evidence of valuable experimentation and feedback that have made the implemented protocols more mature.</t>
+              <t>This process is not mandatory. Authors of Internet-Drafts are encouraged to consider using the process for their documents, and working groups are invited to think about applying the process to all of their protocol specifications. This document obsoletes RFC 6982, advancing it to a Best Current Practice.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="205"/>
+          <seriesInfo name="RFC" value="7942"/>
+          <seriesInfo name="DOI" value="10.17487/RFC7942"/>
+        </reference>
+        <reference anchor="RFC8461" target="https://www.rfc-editor.org/info/rfc8461" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8461.xml">
+          <front>
+            <title>SMTP MTA Strict Transport Security (MTA-STS)</title>
+            <author fullname="D. Margolis" initials="D." surname="Margolis"/>
+            <author fullname="M. Risher" initials="M." surname="Risher"/>
+            <author fullname="B. Ramakrishnan" initials="B." surname="Ramakrishnan"/>
+            <author fullname="A. Brotman" initials="A." surname="Brotman"/>
+            <author fullname="J. Jones" initials="J." surname="Jones"/>
+            <date month="September" year="2018"/>
+            <abstract>
+              <t>SMTP MTA Strict Transport Security (MTA-STS) is a mechanism enabling mail service providers (SPs) to declare their ability to receive Transport Layer Security (TLS) secure SMTP connections and to specify whether sending SMTP servers should refuse to deliver to MX hosts that do not offer TLS with a trusted server certificate.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8461"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8461"/>
+        </reference>
+        <reference anchor="RFC8552" target="https://www.rfc-editor.org/info/rfc8552" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8552.xml">
+          <front>
+            <title>Scoped Interpretation of DNS Resource Records through "Underscored" Naming of Attribute Leaves</title>
+            <author fullname="D. Crocker" initials="D." surname="Crocker"/>
+            <date month="March" year="2019"/>
+            <abstract>
+              <t>Formally, any DNS Resource Record (RR) may occur under any domain name. However, some services use an operational convention for defining specific interpretations of an RRset by locating the records in a DNS branch under the parent domain to which the RRset actually applies. The top of this subordinate branch is defined by a naming convention that uses a reserved node name, which begins with the underscore character (e.g., "_name"). The underscored naming construct defines a semantic scope for DNS record types that are associated with the parent domain above the underscored branch. This specification explores the nature of this DNS usage and defines the "Underscored and Globally Scoped DNS Node Names" registry with IANA. The purpose of this registry is to avoid collisions resulting from the use of the same underscored name for different services.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="BCP" value="222"/>
+          <seriesInfo name="RFC" value="8552"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8552"/>
+        </reference>
+        <reference anchor="RFC9420" target="https://www.rfc-editor.org/info/rfc9420" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9420.xml">
+          <front>
+            <title>The Messaging Layer Security (MLS) Protocol</title>
+            <author fullname="R. Barnes" initials="R." surname="Barnes"/>
+            <author fullname="B. Beurdouche" initials="B." surname="Beurdouche"/>
+            <author fullname="R. Robert" initials="R." surname="Robert"/>
+            <author fullname="J. Millican" initials="J." surname="Millican"/>
+            <author fullname="E. Omara" initials="E." surname="Omara"/>
+            <author fullname="K. Cohn-Gordon" initials="K." surname="Cohn-Gordon"/>
+            <date month="July" year="2023"/>
+            <abstract>
+              <t>Messaging applications are increasingly making use of end-to-end security mechanisms to ensure that messages are only accessible to the communicating endpoints, and not to any servers involved in delivering messages. Establishing keys to provide such protections is challenging for group chat settings, in which more than two clients need to agree on a key but may not be online at the same time. In this document, we specify a key establishment protocol that provides efficient asynchronous group key establishment with forward secrecy (FS) and post-compromise security (PCS) for groups in size ranging from two to thousands.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9420"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9420"/>
+        </reference>
+        <reference anchor="RFC7515" target="https://www.rfc-editor.org/info/rfc7515" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.7515.xml">
+          <front>
+            <title>JSON Web Signature (JWS)</title>
+            <author fullname="M. Jones" initials="M." surname="Jones"/>
+            <author fullname="J. Bradley" initials="J." surname="Bradley"/>
+            <author fullname="N. Sakimura" initials="N." surname="Sakimura"/>
+            <date month="May" year="2015"/>
+            <abstract>
+              <t>JSON Web Signature (JWS) represents content secured with digital signatures or Message Authentication Codes (MACs) using JSON-based data structures. Cryptographic algorithms and identifiers for use with this specification are described in the separate JSON Web Algorithms (JWA) specification and an IANA registry defined by that specification. Related encryption capabilities are described in the separate JSON Web Encryption (JWE) specification.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="7515"/>
+          <seriesInfo name="DOI" value="10.17487/RFC7515"/>
+        </reference>
+        <reference anchor="RFC8792" target="https://www.rfc-editor.org/info/rfc8792" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8792.xml">
+          <front>
+            <title>Handling Long Lines in Content of Internet-Drafts and RFCs</title>
+            <author fullname="K. Watsen" initials="K." surname="Watsen"/>
+            <author fullname="E. Auerswald" initials="E." surname="Auerswald"/>
+            <author fullname="A. Farrel" initials="A." surname="Farrel"/>
+            <author fullname="Q. Wu" initials="Q." surname="Wu"/>
+            <date month="June" year="2020"/>
+            <abstract>
+              <t>This document defines two strategies for handling long lines in width-bounded text content. One strategy, called the "single backslash" strategy, is based on the historical use of a single backslash ('\') character to indicate where line-folding has occurred, with the continuation occurring with the first character that is not a space character (' ') on the next line. The second strategy, called the "double backslash" strategy, extends the first strategy by adding a second backslash character to identify where the continuation begins and is thereby able to handle cases not supported by the first strategy. Both strategies use a self-describing header enabling automated reconstitution of the original content.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8792"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8792"/>
+        </reference>
+        <reference anchor="I-D.ietf-wimse-arch" target="https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/08/">
+          <front>
+            <title>Workload Identity in a Multi System Environment (WIMSE) Architecture</title>
+            <author>
+              <organization>IETF WIMSE Working Group</organization>
+            </author>
+            <date year="2026" month="July" day="6"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-ietf-wimse-arch-08"/>
+        </reference>
+        <reference anchor="I-D.ietf-wimse-aims" target="https://datatracker.ietf.org/doc/draft-ietf-wimse-aims/01/">
+          <front>
+            <title>AI Identity Management System</title>
+            <author>
+              <organization>IETF WIMSE Working Group</organization>
+            </author>
+            <date year="2026" month="November" day="2"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-ietf-wimse-aims-01"/>
+          <annotation>Replaces draft-klrc-aiagent-auth.</annotation>
+        </reference>
+      </references>
+    </references>
+    <section anchor="future" numbered="true">
+      <name>Future Work</name>
+      <t>Designed, not implemented, and so not specified here:</t>
+      <ul>
+        <li>
+          <strong>Delivery over HTTPS between hosts.</strong> One request per
+      recipient domain to the policy's endpoint, carrying the message and a
+      second signed object, the delivery, which names the recipients at that
+      domain (Bcc included) and a send time, binding the message to its
+      recipients and giving it freshness; with defined responses and
+      idempotency on (sending domain, id).</li>
+        <li>
+          <strong>Upgrade from SMTP.</strong> A sender that finds a recipient
+      domain's record delivers over HTTPS instead.</li>
+        <li>
+          <strong>First contact.</strong> What an unknown sender must bring:
+      open, known contacts only, or an introduction signed by a domain the
+      recipient knows.</li>
+        <li>
+          <strong>Attachments by capability URL</strong>, fetched by the
+      recipient before it reports delivered, and an "accepted" receipt.</li>
+        <li>
+          <strong>Signing in with an address.</strong> The policy's
+      identity.issuer as an OpenID Connect issuer for the domain's addresses
+      (running at Pidgeon; to be specified separately).</li>
+        <li>
+          <strong>The agent card</strong>, final (<xref target="card"/>):
+      revocation, and cards for agents on hosts other than the
+      implementation's; and a public verification API.</li>
+        <li>
+          <strong>A second DKIM signature</strong> over the declaration from the
+      customer's own domain.</li>
+        <li>
+          <strong>End-to-end encryption</strong> with MLS
+      <xref target="RFC9420"/>, between mailboxes. Version 0 reserves the
+      message member "enc"; a version 0 receiver rejects a message that
+      carries it.</li>
+        <li>
+          <strong>Threading.</strong> Deriving Message-ID, In-Reply-To and
+      References from the message's id and thread.</li>
+      </ul>
+    </section>
+    <section anchor="second-impl" numbered="true">
+      <name>Notes for a Second Implementation</name>
+      <t>A receiver that verifies envelopes needs: an Ed25519 library with strict
+    verification, a DNS TXT lookup, an HTTPS client, a JSON parser and a MIME
+    parser. It does not need a JSON canonicaliser. Points that are easy to get
+    wrong:</t>
+      <ul>
+        <li>Verify the decoded bytes of m. Never re-serialise the parsed JSON and
+      verify that.</li>
+        <li>Remove whitespace from every tag value before decoding: the field is
+      folded.</li>
+        <li>base64url without padding for Post-Envelope, the policy's keys and
+      receipts; ordinary base64 for Agent-attribution.</li>
+        <li>Compare the signed text with the text/plain body after CRLF to LF and
+      trimming trailing whitespace; compare recipients as case-insensitive
+      sets.</li>
+        <li>Refuse S &gt;= L and small-order points. The vectors in
+      <xref target="vectors-core"/> fail under a lax verifier.</li>
+        <li>Rate-limit unknown-kid refetches per domain, across all of your
+      processes.</li>
+      </ul>
+      <t>A conformant receiver: verifies every valid vector; refuses every vector
+    marked invalid; on the message in <xref target="vectors"/> reaches "pass"
+    for the envelope given the sender's policy, and "signed" with body "intact"
+    for the declaration given the DKIM record; and reaches
+    <tt>domain_mismatch</tt> on the refusal vector that changes d.</t>
+    </section>
+    <section anchor="vectors-core" numbered="true">
+      <name>Ed25519 Vectors</name>
+      <t>The file ed25519.json, published with post-v0.json, holds RFC 8032's
+    Section 7.1 tests 1 to 3, a protocol message and delivery signed with the
+    seed 0x00..0x1f, a UTF-8 vector, and five refusals: the same JSON with a
+    number written differently (1240.50 as 1240.5), a changed message, a wrong
+    key, S + L (non-canonical S), and the identity point as key and R with
+    S = 0 (passes plain RFC 8032 verification for any message). A conformant
+    verifier accepts exactly those marked valid.</t>
+    </section>
+    <section anchor="vectors" numbered="true" xml:base="vectors/appendix.xml">
+      <name>Test Vectors</name>
+      <t>Every value below is in the file post-v0.json at https://github.com/pidgeon-ai/post, which is authoritative: this appendix is generated from it, and long values are broken into runs of 64 characters for display. Whitespace is not part of any value. Seeds are Ed25519 private keys <xref target="RFC8032"/>, which no real domain uses.</t>
+      <section>
+        <name>Keys</name>
+        <t>The sending domain:</t>
+        <sourcecode>
+domain: acme.example
+kid:    2026-10-22.1
+seed (hex):
+  000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+pub (base64url):
+  A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
+</sourcecode>
+        <t>The receiving domain (signs the receipt):</t>
+        <sourcecode>
+domain: supplier.example
+kid:    2026-10-01.1
+seed (hex):
+  202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f
+pub (base64url):
+  Kay64UG8yvCyLhqU000LxzYeUm0L_hLIl5S8kyKWbdc
+</sourcecode>
+      </section>
+      <section>
+        <name>Discovery</name>
+        <t>The TXT record at _post.acme.example:</t>
+        <sourcecode>
+v=post0; id=ae068fffefd849fa
+</sourcecode>
+        <t>The policy served at https://post.acme.example/.well-known/post.json, exactly (it ends with a line feed). Its SHA-256, in hex, begins with the TXT record's id:</t>
+        <sourcecode>
+{
+  "v": "post0",
+  "max_age": 86400,
+  "endpoint": "https://post.pidgeon.ai/v0",
+  "keys": [
+    {
+      "kid": "2026-10-22.1",
+      "alg": "Ed25519",
+      "pub": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "not_after": "2027-10-22T00:00:00Z"
+    }
+  ],
+  "first_contact": {
+    "accept": [
+      "known"
+    ]
+  },
+  "identity": {
+    "issuer": "https://post.acme.example"
+  },
+  "features": []
+}
+</sourcecode>
+      </section>
+      <section>
+        <name>The Signed Message</name>
+        <t>The message bytes, UTF-8, shown on one line per field for display only; the signed bytes contain no line breaks and no spaces outside strings:</t>
+        <sourcecode>
+{"v":"post0",
+"id":"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b",
+"thread":{"id":"2b8e6f10-3c4d-4a5b-8c9d-0e1f2a3b4c5d"},
+"sender":{"address":"billing-agent@acme.example",
+"kind":"agent",
+"on_behalf_of":"Acme Ltd"},
+"to":["ap@supplier.example"],
+"cc":[],
+"created_at":"2026-10-22T14:03:11Z",
+"subject":"Invoice INV-2026-0418",
+"parts":[{"role":"text",
+"type":"text/plain",
+"body":"Hello, our invoice for October is attached.\n\nAcme Ltd"},
+{"role":"data",
+"schema":"https://schema.org/Invoice",
+"body":{"identifier":"INV-2026-0418",
+"totalPaymentDue":{"price":1240.5,
+"priceCurrency":"EUR"}}}]}
+</sourcecode>
+        <t>SHA-256 of the message bytes, in hex:</t>
+        <sourcecode>
+1cc77018b70833dd109ad6634957f048cc2e677d42a6fc8003573eac3904c3ac
+</sourcecode>
+        <t>The sender's Ed25519 signature over the message bytes, base64url:</t>
+        <sourcecode>
+X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhr
+GD16ENe6mp2Lq_14fCHTBg
+</sourcecode>
+      </section>
+      <section>
+        <name>The Agent Declaration</name>
+        <t>The three fields, as written by an agent sending for "Acme Ltd":</t>
+        <sourcecode>
+Agent-of: "Acme Ltd" &lt;agents+k7m2p9q4rs@pidgeon.email&gt;
+Agent-attribution:
+  eyJ2IjoxLCJraW5kIjoiYWdlbnQiLCJvbl9iZWhhbGZfb2YiOiJBY21lIEx0ZCIs
+  InBsYXRmb3JtIjoicGlkZ2Vvbi5haSIsInZlcmlmeSI6Imh0dHBzOi8vcGlkZ2Vv
+  bi5haS92ZXJpZnkvcTJWMGFYTjBMWFpsWTNSdmNpMHdNUSJ9
+AI-Disclosure: mode=ai-originated
+</sourcecode>
+        <t>Agent-attribution, decoded:</t>
+        <sourcecode>
+{"v":1,
+"kind":"agent",
+"on_behalf_of":"Acme Ltd",
+"platform":"pidgeon.ai",
+"verify":"https://pidgeon.ai/verify/q2V0aXN0LXZlY3Rvci0wMQ"}
+</sourcecode>
+        <t>The DKIM key record, at spec-vector._domainkey.pidgeon.email:</t>
+        <sourcecode>
+v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3p
+sffalJyYCWMhXZYhQMcYhjOvK9xs+xSt0j0nvKzhe8WEH/GT2yi2wxYHUDA5g8TV
+0/P6YVqc8EUrDxFTuI/B7Pfn8qwYO9JZC8Ue5jsn8KJNtfDPOy7mZl53J15alind
+PHW4379zLne/52mceniWYsfrVPZ4wPZIejVxycpjrJdz2V06y3QOwgX/XROLR8aT
+7hNdICtZmw5+j0+aJoCHIBItsVOpQ7DjUfj+FLOfdkhLxOyuAQMqG8ThYg8KrGyA
+9r8afjrxyLio7IK29cDcJEBG/5p+Dg/5EM+uUqBVpm8cd09lHAPT/r2TxVAHkrMT
+bhlXCV5Rud8R1psMQBbQIDAQAB
+</sourcecode>
+        <t>The whole message as a receiver sees it, DKIM-signed with that key and carrying the Post-Envelope field. Long lines are wrapped as in <xref target="RFC8792"/>; in post-v0.json each line ends with CRLF and is unbroken. DKIM verification of it passes:</t>
+        <sourcecode>
+NOTE: '\' line wrapping per RFC 8792
+
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pidgeon.ema\
+il;
+ h=AI-Disclosure: Agent-attribution: Agent-of: Content-Type: MIME-V\
+ersion:
+ Subject: To: From; q=dns/txt; s=spec-vector; t=1792677791;
+ bh=h4aW45H/PviD6Wxz3VKF+uGLK4NFcHTSrYVus1v7334=;
+ b=e6GmpfzNvJbAiYzBJIVI6G7/3Qmaen8/fAjrM5C1lI/QSlww4/VgInVTkj0rJjju\
+egdTEQeiN
+ z4JwVvPjmF5WJbOTufF5rPrlDt8unqlIKgs8AZdOWOFJkWEQI5SaWcgjloveOmyfim\
+fhuGIvjrQ
+ ZLZ5S9tDv3ionWQJW8U+At3RgGdDGQs4its6InpU0/XBeeNyRlrtT9wBaAMBWbxtDq\
+urgBU1ovJ
+ vD8jeqcVcIDCSAZb1dzONKcGtkYq8vf0Bcsv3LqggaxxWCRDR1D0FOcSJ63b98xDrc\
+sq58846mz
+ 8I3FzoQl942UjeOTNJ5cw/CZdk4uQ5b7uSJh7NjWStrg==
+From: Acme Billing &lt;billing-agent@acme.example&gt;
+To: ap@supplier.example
+Subject: Invoice INV-2026-0418
+Date: Thu, 22 Oct 2026 14:03:11 +0000
+Message-ID: &lt;7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b@acme.example&gt;
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Agent-of: "Acme Ltd" &lt;agents+k7m2p9q4rs@pidgeon.email&gt;
+Agent-attribution: eyJ2IjoxLCJraW5kIjoiYWdlbnQiLCJvbl9iZWhhbGZfb2Yi\
+OiJBY21lIEx0ZCIsInBsYXRmb3JtIjoicGlkZ2Vvbi5haSIsInZlcmlmeSI6Imh0dHB\
+zOi8vcGlkZ2Vvbi5haS92ZXJpZnkvcTJWMGFYTjBMWFpsWTNSdmNpMHdNUSJ9
+AI-Disclosure: mode=ai-originated
+Post-Envelope: v=post0; d=acme.example; k=2026-10-22.1;
+ s=X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhr\
+GD16ENe6mp2L
+ q_14fCHTBg;
+ m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQy\
+ZTNmNGE1YiIs
+ InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNG\
+M1ZCJ9LCJz
+ ZW5kZXIiOnsiYWRkcmVzcyI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwia2\
+luZCI6ImFn
+ ZW50Iiwib25fYmVoYWxmX29mIjoiQWNtZSBMdGQifSwidG8iOlsiYXBAc3VwcGxpZX\
+IuZXhhbXBs
+ ZSJdLCJjYyI6W10sImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTIyVDE0OjAzOjExWiIsIn\
+N1YmplY3Qi
+ OiJJbnZvaWNlIElOVi0yMDI2LTA0MTgiLCJwYXJ0cyI6W3sicm9sZSI6InRleHQiLC\
+J0eXBlIjoi
+ dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZX\
+IgaXMgYXR0
+ YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dH\
+BzOi8vc2No
+ ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMD\
+QxOCIsInRv
+ dGFsUGF5bWVudER1ZSI6eyJwcmljZSI6MTI0MC41LCJwcmljZUN1cnJlbmN5IjoiRV\
+VSIn19fV19
+
+Hello, our invoice for October is attached.
+
+Acme Ltd
+</sourcecode>
+      </section>
+      <section>
+        <name>The Agent Card</name>
+        <t>The card for the sending address, signed with the sending domain's key. The payload:</t>
+        <sourcecode>
+{
+  "iss": "https://post.acme.example",
+  "sub": "id_7Hq2Mx9Kp4Rt",
+  "iat": 1792677791,
+  "exp": 1792764191,
+  "v": "post0",
+  "address": "billing-agent@acme.example",
+  "kind": "agent",
+  "on_behalf_of": "Acme Ltd",
+  "operator": {
+    "domain": "acme.example",
+    "verified": true
+  },
+  "created_at": "2026-09-01T09:00:00Z",
+  "keys": [
+    {
+      "type": "post",
+      "domain": "acme.example",
+      "kid": "2026-10-22.1"
+    },
+    {
+      "type": "dkim",
+      "domain": "pidgeon.email",
+      "selector": "spec-vector"
+    }
+  ],
+  "reputation": {
+    "standing": "established",
+    "since": "2026-09"
+  },
+  "url": "https://pidgeon.ai/api/v1/cards/id_7Hq2Mx9Kp4Rt"
+}
+</sourcecode>
+        <t>The compact JWS, whose signature verifies under the key above:</t>
+        <sourcecode>
+eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWNhcmQrand0Iiwia2lkIjoiMjAy
+Ni0xMC0yMi4xIn0.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwi
+c3ViIjoiaWRfN0hxMk14OUtwNFJ0IiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3
+OTI3NjQxOTEsInYiOiJwb3N0MCIsImFkZHJlc3MiOiJiaWxsaW5nLWFnZW50QGFj
+bWUuZXhhbXBsZSIsImtpbmQiOiJhZ2VudCIsIm9uX2JlaGFsZl9vZiI6IkFjbWUg
+THRkIiwib3BlcmF0b3IiOnsiZG9tYWluIjoiYWNtZS5leGFtcGxlIiwidmVyaWZp
+ZWQiOnRydWV9LCJjcmVhdGVkX2F0IjoiMjAyNi0wOS0wMVQwOTowMDowMFoiLCJr
+ZXlzIjpbeyJ0eXBlIjoicG9zdCIsImRvbWFpbiI6ImFjbWUuZXhhbXBsZSIsImtp
+ZCI6IjIwMjYtMTAtMjIuMSJ9LHsidHlwZSI6ImRraW0iLCJkb21haW4iOiJwaWRn
+ZW9uLmVtYWlsIiwic2VsZWN0b3IiOiJzcGVjLXZlY3RvciJ9XSwicmVwdXRhdGlv
+biI6eyJzdGFuZGluZyI6ImVzdGFibGlzaGVkIiwic2luY2UiOiIyMDI2LTA5In0s
+InVybCI6Imh0dHBzOi8vcGlkZ2Vvbi5haS9hcGkvdjEvY2FyZHMvaWRfN0hxMk14
+OUtwNFJ0In0.Sj3Z4oJJhmkGRzPoCuBr9DO_yF1Pw1mjVhYtdQMsFPen9W71JfRR
+N4lIld9VfhvWW-fi7bBP_c-mcNLw0i0bDw
+</sourcecode>
+      </section>
+      <section>
+        <name>A Signed Receipt</name>
+        <t>Specified by this document, not yet emitted by any implementation. The receipt bytes:</t>
+        <sourcecode>
+{"v":"post0",
+"message_id":"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b",
+"from_domain":"acme.example",
+"recipient":"ap@supplier.example",
+"kind":"delivered",
+"at":"2026-10-22T14:03:13Z"}
+</sourcecode>
+        <t>As carried (<xref target="receipt-wire"/>), with receipt and sig in base64url:</t>
+        <sourcecode>
+v: post0
+d: supplier.example
+kid: 2026-10-01.1
+receipt:
+  eyJ2IjoicG9zdDAiLCJtZXNzYWdlX2lkIjoiN2YxYzJhOWUtNGIzZC00ZTVmLTlh
+  OGItMGMxZDJlM2Y0YTViIiwiZnJvbV9kb21haW4iOiJhY21lLmV4YW1wbGUiLCJy
+  ZWNpcGllbnQiOiJhcEBzdXBwbGllci5leGFtcGxlIiwia2luZCI6ImRlbGl2ZXJl
+  ZCIsImF0IjoiMjAyNi0xMC0yMlQxNDowMzoxM1oifQ
+sig:
+  EoSooccSPTmZ4ca_n0cnEnnN8NCUTZj3fXoTITIgMwaFSEni-zVAULqzLwNX3DDh
+  MmaymPDz6jvbswUU4J07Dw
+</sourcecode>
+      </section>
+    </section>
+    <section anchor="open" numbered="false" removeInRFC="true">
+      <name>Open Questions</name>
+      <ol>
+      <li>The agent card (<xref target="card"/>): a JWS where every other
+      signed object here is exact JSON bytes with a detached signature;
+      whether exp of a day is enough without revocation; and its well-known
+      path.</li>
+        <li>Whether the receipt names the sending domain (this draft) or only
+      the message id.</li>
+        <li>Whether AI-Disclosure should be used in mail while its draft is
+      HTTP-only and expired, or replaced by an Agent-attribution member.</li>
+        <li>Whether the envelope should carry the declaration's verify link, so
+      the envelope alone leads to the card.</li>
+        <li>Intended status (Experimental here) and stream.</li>
+      </ol>
+    </section>
+  </back>
+</rfc>
