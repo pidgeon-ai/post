@@ -115,6 +115,79 @@
     },
     "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWNhcmQrand0Iiwia2lkIjoiMjAyNi0xMC0yMi4xIn0.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwic3ViIjoiaWRfN0hxMk14OUtwNFJ0IiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTI3NjQxOTEsInYiOiJwb3N0MCIsImFkZHJlc3MiOiJiaWxsaW5nLWFnZW50QGFjbWUuZXhhbXBsZSIsImtpbmQiOiJhZ2VudCIsIm9uX2JlaGFsZl9vZiI6IkFjbWUgTHRkIiwib3BlcmF0b3IiOnsiZG9tYWluIjoiYWNtZS5leGFtcGxlIiwidmVyaWZpZWQiOnRydWV9LCJjcmVhdGVkX2F0IjoiMjAyNi0wOS0wMVQwOTowMDowMFoiLCJrZXlzIjpbeyJ0eXBlIjoicG9zdCIsImRvbWFpbiI6ImFjbWUuZXhhbXBsZSIsImtpZCI6IjIwMjYtMTAtMjIuMSJ9LHsidHlwZSI6ImRraW0iLCJkb21haW4iOiJwaWRnZW9uLmVtYWlsIiwic2VsZWN0b3IiOiJzcGVjLXZlY3RvciJ9XSwicmVwdXRhdGlvbiI6eyJzdGFuZGluZyI6ImVzdGFibGlzaGVkIiwic2luY2UiOiIyMDI2LTA5In0sInVybCI6Imh0dHBzOi8vcGlkZ2Vvbi5haS9hcGkvdjEvY2FyZHMvaWRfN0hxMk14OUtwNFJ0In0.Sj3Z4oJJhmkGRzPoCuBr9DO_yF1Pw1mjVhYtdQMsFPen9W71JfRRN4lIld9VfhvWW-fi7bBP_c-mcNLw0i0bDw"
   },
+  "transparency": {
+    "log_seed": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
+    "origin": "log.example/cards",
+    "verifier_key": "log.example/cards+399d3d39+ASVDuS/xCVURR2rcg2nbbdyTNmWhGXjdoUBO4QZsqVWd",
+    "entries": [
+      {
+        "index": 0,
+        "data": "{\"address\":\"billing-agent@acme.example\",\"event\":\"issued\",\"iss\":\"https://post.acme.example\",\"keys\":[{\"domain\":\"acme.example\",\"kid\":\"2026-10-22.1\",\"pub\":\"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg\",\"type\":\"post\"},{\"domain\":\"pidgeon.email\",\"selector\":\"spec-vector\",\"type\":\"dkim\"}],\"kind\":\"agent\",\"on_behalf_of\":\"Acme Ltd\",\"operator\":{\"domain\":\"acme.example\",\"verified\":true},\"sub\":\"id_7Hq2Mx9Kp4Rt\",\"time\":\"2026-09-01T09:00:00Z\",\"v\":\"post0-log\"}",
+        "leaf_hash_hex": "1580e8ead3f636bd151354f81e01ddb75d954d2563d1623752d9b488c1cb7aae"
+      },
+      {
+        "index": 1,
+        "data": "{\"address\":\"billing-agent@acme.example\",\"event\":\"updated\",\"iss\":\"https://post.acme.example\",\"keys\":[{\"domain\":\"acme.example\",\"kid\":\"2026-10-22.1\",\"pub\":\"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg\",\"type\":\"post\"},{\"domain\":\"pidgeon.email\",\"selector\":\"spec-vector\",\"type\":\"dkim\"}],\"kind\":\"agent\",\"on_behalf_of\":\"Acme Group\",\"operator\":{\"domain\":\"acme.example\",\"verified\":true},\"prev\":0,\"sub\":\"id_7Hq2Mx9Kp4Rt\",\"time\":\"2026-10-22T14:00:00Z\",\"v\":\"post0-log\"}",
+        "leaf_hash_hex": "e25b4a237b11c2231e7011bd6f08dc47c4874cdb8036289216de6acd5fb35134"
+      },
+      {
+        "index": 2,
+        "data": "{\"address\":\"billing-agent@acme.example\",\"event\":\"revoked\",\"prev\":1,\"sub\":\"id_7Hq2Mx9Kp4Rt\",\"time\":\"2026-11-04T08:00:00Z\",\"v\":\"post0-log\"}",
+        "leaf_hash_hex": "7d007019c0b4116da40cbf19d0d8024748f2a5e3199f767a9856c30e8651da2f"
+      }
+    ],
+    "roots_hex": [
+      "1580e8ead3f636bd151354f81e01ddb75d954d2563d1623752d9b488c1cb7aae",
+      "745231431f9fab8550cea68ed6f0bada9d9dcf065175e8be7d2d844999751bab",
+      "7d25bb3b1fde0f1421c2feef142217005a49efd7fc93f734dc0df252c125418f"
+    ],
+    "checkpoint": "log.example/cards\n3\nfSW7Ox/eDxQhwv7vFCIXAFpJ79f8k/c03A3yUsElQY8=\n\n— log.example/cards OZ09Of730w5zXqo4Ft/XxUlpaaSkvXdcjvo1Wvgz22CubSPk1hWfURzEp2cJ5LhE25u7xw8gFyDmRVaYjrrHU7NAEAg=\n",
+    "inclusion": {
+      "index": 1,
+      "tree_size": 3,
+      "proof_b64": [
+        "FYDo6tP2Nr0VE1T4HgHdt12VTSVj0WI3Utm0iMHLeq4=",
+        "fQBwGcC0EW2kDL8Z0NgCR0jypeMZn3Z6mFbDDoZR2i8="
+      ]
+    },
+    "consistency": {
+      "first": 2,
+      "second": 3,
+      "proof_b64": ["fQBwGcC0EW2kDL8Z0NgCR0jypeMZn3Z6mFbDDoZR2i8="]
+    }
+  },
+  "grant": {
+    "payload": {
+      "iss": "https://post.acme.example",
+      "jti": "3c1e5b7a",
+      "sub": "id_7Hq2Mx9Kp4Rt",
+      "agent": "billing-agent@acme.example",
+      "iat": 1792677791,
+      "exp": 1798761600,
+      "v": "post0",
+      "grantor": {
+        "type": "person",
+        "email": "jo@customer.example",
+        "confirmed_by": "email"
+      },
+      "scope": {
+        "name": "refunds.request",
+        "label": "request refunds",
+        "limit": {
+          "amount": 10000,
+          "currency": "USD"
+        }
+      },
+      "aud": "supplier.example",
+      "subject": {
+        "type": "order",
+        "id": "A-1042"
+      },
+      "status": "https://pidgeon.ai/api/v1/grants/3c1e5b7a/status"
+    },
+    "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtpZCI6IjIwMjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHEyTXg5S3A0UnQiLCJhZ2VudCI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTg3NjE2MDAsInYiOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InBlcnNvbiIsImVtYWlsIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9ieSI6ImVtYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJsYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI6MTAwMDAsImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5leGFtcGxlIiwic3ViamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkEtMTA0MiJ9LCJzdGF0dXMiOiJodHRwczovL3BpZGdlb24uYWkvYXBpL3YxL2dyYW50cy8zYzFlNWI3YS9zdGF0dXMifQ.wQfmO02Zpn9YEh5nJ9-TZkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ5cANQsCmIAbrCnq-dKMQuVPlBg",
+    "header_field": "Post-Grant: eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtp\r\n ZCI6IjIwMjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWN\r\n tZS5leGFtcGxlIiwianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHE\r\n yTXg5S3A0UnQiLCJhZ2VudCI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGF\r\n tcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTg3NjE2MDAsInY\r\n iOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InBlcnNvbiIsImVtYWl\r\n sIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9ieSI6ImV\r\n tYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJ\r\n sYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI\r\n 6MTAwMDAsImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5\r\n leGFtcGxlIiwic3ViamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkE\r\n tMTA0MiJ9LCJzdGF0dXMiOiJodHRwczovL3BpZGdlb24uYWkvYXBpL3Y\r\n xL2dyYW50cy8zYzFlNWI3YS9zdGF0dXMifQ.wQfmO02Zpn9YEh5nJ9-T\r\n Zkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ5cANQsCmIAbrCnq-\r\n dKMQuVPlBg"
+  },
   "refusals": [
     {
       "name": "envelope-one-byte-changed",
@@ -126,6 +199,18 @@
       "name": "envelope-wrong-domain",
       "note": "header_value with d=supplier.example: the message verifies under neither the From domain (d= mismatch) nor supplier.example's key",
       "header_value": "v=post0; d=supplier.example; k=2026-10-22.1; s=X-qotDWCpfE4TWayo-Aynb37W_6jDDUZaQFHn9xGaW-yfybSEyMRZ8IA6HShTMhrGD16ENe6mp2L q_14fCHTBg; m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQyZTNmNGE1YiIs InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNGM1ZCJ9LCJz ZW5kZXIiOnsiYWRkcmVzcyI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwia2luZCI6ImFn ZW50Iiwib25fYmVoYWxmX29mIjoiQWNtZSBMdGQifSwidG8iOlsiYXBAc3VwcGxpZXIuZXhhbXBs ZSJdLCJjYyI6W10sImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTIyVDE0OjAzOjExWiIsInN1YmplY3Qi OiJJbnZvaWNlIElOVi0yMDI2LTA0MTgiLCJwYXJ0cyI6W3sicm9sZSI6InRleHQiLCJ0eXBlIjoi dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZXIgaXMgYXR0 YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dHBzOi8vc2No ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMDQxOCIsInRv dGFsUGF5bWVudER1ZSI6eyJwcmljZSI6MTI0MC41LCJwcmljZUN1cnJlbmN5IjoiRVVSIn19fV19",
+      "valid": false
+    },
+    {
+      "name": "log-entry-changed",
+      "note": "transparency.entries[1].data with \"Acme Group\" written \"Acme Ltd.\": its leaf hash differs, and transparency.inclusion must not verify it",
+      "data": "{\"address\":\"billing-agent@acme.example\",\"event\":\"updated\",\"iss\":\"https://post.acme.example\",\"keys\":[{\"domain\":\"acme.example\",\"kid\":\"2026-10-22.1\",\"pub\":\"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg\",\"type\":\"post\"},{\"domain\":\"pidgeon.email\",\"selector\":\"spec-vector\",\"type\":\"dkim\"}],\"kind\":\"agent\",\"on_behalf_of\":\"Acme Ltd.\",\"operator\":{\"domain\":\"acme.example\",\"verified\":true},\"prev\":0,\"sub\":\"id_7Hq2Mx9Kp4Rt\",\"time\":\"2026-10-22T14:00:00Z\",\"v\":\"post0-log\"}",
+      "valid": false
+    },
+    {
+      "name": "grant-subject-changed",
+      "note": "the grant's payload with subject.id A-1043, the signature kept: must not verify",
+      "jws": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtpZCI6IjIwMjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHEyTXg5S3A0UnQiLCJhZ2VudCI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTg3NjE2MDAsInYiOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InBlcnNvbiIsImVtYWlsIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9ieSI6ImVtYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJsYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI6MTAwMDAsImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5leGFtcGxlIiwic3ViamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkEtMTA0MyJ9LCJzdGF0dXMiOiJodHRwczovL3BpZGdlb24uYWkvYXBpL3YxL2dyYW50cy8zYzFlNWI3YS9zdGF0dXMifQ.wQfmO02Zpn9YEh5nJ9-TZkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ5cANQsCmIAbrCnq-dKMQuVPlBg",
       "valid": false
     }
   ]

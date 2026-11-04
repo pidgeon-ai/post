@@ -74,38 +74,38 @@ Copyright Notice
 
 Table of Contents
 
-   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   4
      1.1.  Scope of Version 0  . . . . . . . . . . . . . . . . . . .   4
-     1.2.  Conventions and Terminology . . . . . . . . . . . . . . .   4
+     1.2.  Conventions and Terminology . . . . . . . . . . . . . . .   5
    2.  The Agent Declaration . . . . . . . . . . . . . . . . . . . .   5
      2.1.  Fields  . . . . . . . . . . . . . . . . . . . . . . . . .   5
      2.2.  Authentication by DKIM  . . . . . . . . . . . . . . . . .   6
      2.3.  The Verify Link . . . . . . . . . . . . . . . . . . . . .   7
      2.4.  What a Receiver May Trust . . . . . . . . . . . . . . . .   7
    3.  Domain Keys and the Agent Card  . . . . . . . . . . . . . . .   7
-     3.1.  The DNS Record  . . . . . . . . . . . . . . . . . . . . .   7
+     3.1.  The DNS Record  . . . . . . . . . . . . . . . . . . . . .   8
      3.2.  The Policy  . . . . . . . . . . . . . . . . . . . . . . .   8
-     3.3.  Caching, Rotation and Refetching  . . . . . . . . . . . .   8
+     3.3.  Caching, Rotation and Refetching  . . . . . . . . . . . .   9
      3.4.  Signatures  . . . . . . . . . . . . . . . . . . . . . . .   9
-     3.5.  The Agent Card  . . . . . . . . . . . . . . . . . . . . .   9
+     3.5.  The Agent Card  . . . . . . . . . . . . . . . . . . . . .  10
        3.5.1.  Format and Signature  . . . . . . . . . . . . . . . .  10
        3.5.2.  Discovery and Checking  . . . . . . . . . . . . . . .  11
-   4.  Verification  . . . . . . . . . . . . . . . . . . . . . . . .  11
-     4.1.  The Declaration . . . . . . . . . . . . . . . . . . . . .  11
-     4.2.  The Envelope  . . . . . . . . . . . . . . . . . . . . . .  12
-     4.3.  Combining the Outcomes  . . . . . . . . . . . . . . . . .  13
-   5.  Between Post Endpoints  . . . . . . . . . . . . . . . . . . .  13
-     5.1.  Knowing the Other End Speaks Post . . . . . . . . . . . .  14
-     5.2.  The Signed Envelope . . . . . . . . . . . . . . . . . . .  14
-       5.2.1.  The Message . . . . . . . . . . . . . . . . . . . . .  14
-       5.2.2.  The Post-Envelope Header Field  . . . . . . . . . . .  15
-       5.2.3.  Typed Data in MIME  . . . . . . . . . . . . . . . . .  15
-     5.3.  Delivery  . . . . . . . . . . . . . . . . . . . . . . . .  16
-     5.4.  Receipts  . . . . . . . . . . . . . . . . . . . . . . . .  16
-       5.4.1.  The Receipt . . . . . . . . . . . . . . . . . . . . .  17
-       5.4.2.  Carrying a Receipt  . . . . . . . . . . . . . . . . .  17
-   6.  Names on the Wire . . . . . . . . . . . . . . . . . . . . . .  17
-   7.  Implementation Status . . . . . . . . . . . . . . . . . . . .  18
+       3.5.3.  Revocation  . . . . . . . . . . . . . . . . . . . . .  11
+       3.5.4.  Issuance for a Domain the Host Does Not Hold  . . . .  12
+       3.5.5.  Agent Requests over HTTP  . . . . . . . . . . . . . .  13
+       3.5.6.  A Card in an A2A Agent Card . . . . . . . . . . . . .  14
+       3.5.7.  The Card Log  . . . . . . . . . . . . . . . . . . . .  14
+   4.  Grants  . . . . . . . . . . . . . . . . . . . . . . . . . . .  16
+     4.1.  Format and Signature  . . . . . . . . . . . . . . . . . .  16
+     4.2.  Issuing . . . . . . . . . . . . . . . . . . . . . . . . .  17
+     4.3.  Carrying a Grant  . . . . . . . . . . . . . . . . . . . .  17
+     4.4.  Checking a Grant  . . . . . . . . . . . . . . . . . . . .  18
+   5.  Verification  . . . . . . . . . . . . . . . . . . . . . . . .  18
+     5.1.  The Declaration . . . . . . . . . . . . . . . . . . . . .  19
+     5.2.  The Envelope  . . . . . . . . . . . . . . . . . . . . . .  19
+     5.3.  Combining the Outcomes  . . . . . . . . . . . . . . . . .  20
+   6.  Between Post Endpoints  . . . . . . . . . . . . . . . . . . .  21
+     6.1.  Knowing the Other End Speaks Post . . . . . . . . . . . .  21
 
 
 
@@ -114,48 +114,48 @@ de Castro Neuhaus          Expires 7 May 2027                   [Page 2]
 Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
 
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  19
-     8.1.  A Signature Is Not a Truth  . . . . . . . . . . . . . . .  19
-     8.2.  Forged Declarations . . . . . . . . . . . . . . . . . . .  19
-     8.3.  Replay  . . . . . . . . . . . . . . . . . . . . . . . . .  19
-     8.4.  Key Compromise and Revocation . . . . . . . . . . . . . .  19
-     8.5.  Fetching Policies . . . . . . . . . . . . . . . . . . . .  20
-     8.6.  Content Written for People, Read by Software  . . . . . .  20
-     8.7.  Signature Malleability  . . . . . . . . . . . . . . . . .  20
-   9.  Privacy Considerations  . . . . . . . . . . . . . . . . . . .  20
-   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  20
-     10.1.  Message Header Fields  . . . . . . . . . . . . . . . . .  21
-     10.2.  Well-Known URI . . . . . . . . . . . . . . . . . . . . .  21
-     10.3.  Media Type . . . . . . . . . . . . . . . . . . . . . . .  21
-     10.4.  Underscored DNS Node Name  . . . . . . . . . . . . . . .  21
-     10.5.  Agent-attribution Members  . . . . . . . . . . . . . . .  21
-   11. References  . . . . . . . . . . . . . . . . . . . . . . . . .  21
-     11.1.  Normative References . . . . . . . . . . . . . . . . . .  21
-     11.2.  Informative References . . . . . . . . . . . . . . . . .  23
-   Appendix A.  Future Work  . . . . . . . . . . . . . . . . . . . .  24
-   Appendix B.  Notes for a Second Implementation  . . . . . . . . .  25
-   Appendix C.  Ed25519 Vectors  . . . . . . . . . . . . . . . . . .  26
-   Appendix D.  Test Vectors . . . . . . . . . . . . . . . . . . . .  26
-     D.1.  Keys  . . . . . . . . . . . . . . . . . . . . . . . . . .  26
-     D.2.  Discovery . . . . . . . . . . . . . . . . . . . . . . . .  26
-     D.3.  The Signed Message  . . . . . . . . . . . . . . . . . . .  27
-     D.4.  The Agent Declaration . . . . . . . . . . . . . . . . . .  28
-     D.5.  The Agent Card  . . . . . . . . . . . . . . . . . . . . .  30
-     D.6.  A Signed Receipt  . . . . . . . . . . . . . . . . . . . .  32
-   Open Questions  . . . . . . . . . . . . . . . . . . . . . . . . .  32
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  33
-
-1.  Introduction
-
-   An email message written by a software agent looks like any other.  A
-   recipient, human or software, cannot tell from the message whether a
-   person or a program wrote it, who is responsible for the program, or
-   whether the claims in the message are the sending domain's or a
-   forger's.  DKIM [RFC6376] and DMARC [RFC9989] say that a domain
-   handled a message; they say nothing about what kind of sender wrote
-   it or for whom.
-
-
+     6.2.  The Signed Envelope . . . . . . . . . . . . . . . . . . .  21
+       6.2.1.  The Message . . . . . . . . . . . . . . . . . . . . .  21
+       6.2.2.  The Post-Envelope Header Field  . . . . . . . . . . .  22
+       6.2.3.  Typed Data in MIME  . . . . . . . . . . . . . . . . .  23
+     6.3.  Delivery  . . . . . . . . . . . . . . . . . . . . . . . .  23
+     6.4.  Receipts  . . . . . . . . . . . . . . . . . . . . . . . .  24
+       6.4.1.  The Receipt . . . . . . . . . . . . . . . . . . . . .  24
+       6.4.2.  Carrying a Receipt  . . . . . . . . . . . . . . . . .  24
+   7.  Names on the Wire . . . . . . . . . . . . . . . . . . . . . .  25
+   8.  Implementation Status . . . . . . . . . . . . . . . . . . . .  25
+   9.  Security Considerations . . . . . . . . . . . . . . . . . . .  26
+     9.1.  A Signature Is Not a Truth  . . . . . . . . . . . . . . .  26
+     9.2.  Forged Declarations . . . . . . . . . . . . . . . . . . .  26
+     9.3.  Replay  . . . . . . . . . . . . . . . . . . . . . . . . .  27
+     9.4.  Key Compromise and Revocation . . . . . . . . . . . . . .  27
+     9.5.  Fetching Policies . . . . . . . . . . . . . . . . . . . .  27
+     9.6.  Content Written for People, Read by Software  . . . . . .  27
+     9.7.  Signature Malleability  . . . . . . . . . . . . . . . . .  27
+   10. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  27
+   11. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  28
+     11.1.  Message Header Fields  . . . . . . . . . . . . . . . . .  28
+     11.2.  Well-Known URI . . . . . . . . . . . . . . . . . . . . .  29
+     11.3.  Media Type . . . . . . . . . . . . . . . . . . . . . . .  29
+     11.4.  Underscored DNS Node Name  . . . . . . . . . . . . . . .  29
+     11.5.  Agent-attribution Members  . . . . . . . . . . . . . . .  29
+   12. References  . . . . . . . . . . . . . . . . . . . . . . . . .  29
+     12.1.  Normative References . . . . . . . . . . . . . . . . . .  29
+     12.2.  Informative References . . . . . . . . . . . . . . . . .  31
+   Appendix A.  Future Work  . . . . . . . . . . . . . . . . . . . .  33
+   Appendix B.  Notes for a Second Implementation  . . . . . . . . .  34
+   Appendix C.  Ed25519 Vectors  . . . . . . . . . . . . . . . . . .  34
+   Appendix D.  Test Vectors . . . . . . . . . . . . . . . . . . . .  35
+     D.1.  Keys  . . . . . . . . . . . . . . . . . . . . . . . . . .  35
+     D.2.  Discovery . . . . . . . . . . . . . . . . . . . . . . . .  35
+     D.3.  The Signed Message  . . . . . . . . . . . . . . . . . . .  36
+     D.4.  The Agent Declaration . . . . . . . . . . . . . . . . . .  37
+     D.5.  The Agent Card  . . . . . . . . . . . . . . . . . . . . .  39
+     D.6.  The Card Log  . . . . . . . . . . . . . . . . . . . . . .  40
+     D.7.  A Grant . . . . . . . . . . . . . . . . . . . . . . . . .  42
+     D.8.  A Signed Receipt  . . . . . . . . . . . . . . . . . . . .  43
+   Open Questions  . . . . . . . . . . . . . . . . . . . . . . . . .  44
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  44
 
 
 
@@ -169,6 +169,16 @@ de Castro Neuhaus          Expires 7 May 2027                   [Page 3]
 
 Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
+
+1.  Introduction
+
+   An email message written by a software agent looks like any other.  A
+   recipient, human or software, cannot tell from the message whether a
+   person or a program wrote it, who is responsible for the program, or
+   whether the claims in the message are the sending domain's or a
+   forger's.  DKIM [RFC6376] and DMARC [RFC9989] say that a domain
+   handled a message; they say nothing about what kind of sender wrote
+   it or for whom.
 
    Two individual drafts propose header fields for part of this: "Agent
    Attribution Header Fields"
@@ -190,13 +200,13 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
        manner of MTA-STS [RFC8461] (Section 3), and a signed card per
        agent address (Section 3.5).
 
-   3.  A verification procedure with defined outcomes (Section 4).
+   3.  A verification procedure with defined outcomes (Section 5).
 
    4.  Between two endpoints that both implement Post: a signed copy of
        the message (the "envelope"), carried in a header field, which
        binds the declared sender to the From address, the recipients,
-       the text, any structured data and every attachment (Section 5.2);
-       typed data; and receipts (Section 5).
+       the text, any structured data and every attachment (Section 6.2);
+       typed data; and receipts (Section 6).
 
    Nothing here asks a recipient to change mail software.  A receiver
    that implements none of it sees ordinary mail.
@@ -208,6 +218,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    between hosts, first-contact policy, end-to-end encryption or a
    client protocol; see Appendix A.
 
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                   [Page 4]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
 1.2.  Conventions and Terminology
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
@@ -218,13 +236,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
    Agent:  Software that writes and sends messages, typically driven by
       a language model, on behalf of a person or an organisation.
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                   [Page 4]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
 
    Sender kind:  One of "person", "agent" or "service" (software that is
       not an agent, such as a workflow or an application).  No other
@@ -263,6 +274,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    own message emits none of them.
 
    Agent-of:  As defined in
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                   [Page 5]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
       [I-D.chuang-agent-attribution-header-fields]: an address-list
       [RFC5322] naming who is responsible.  A Post sender writes exactly
       one address.  The address SHOULD be an alias at the DKIM signing
@@ -274,13 +293,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
       [I-D.chuang-agent-attribution-header-fields]: base64 of a JSON
       [RFC8259] object.  That draft leaves the object's members to a
       future registry.  Post defines these:
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                   [Page 5]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
 
       v  The integer 1.
       kind  The sender kind, "agent" or "service".
@@ -319,6 +331,13 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    The declaration is trustworthy only under a DKIM signature that
    covers it, from a domain that answers for it.  A sender:
 
+
+
+de Castro Neuhaus          Expires 7 May 2027                   [Page 6]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    *  MUST sign the message with DKIM [RFC6376], with an "h=" tag that
       includes Agent-of, Agent-attribution and AI-Disclosure (whichever
       are present), From, To, Cc, Subject, MIME-Version and Content-
@@ -329,17 +348,8 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
       [I-D.chuang-agent-attribution-header-fields] Section 1.2.1
       requires;
 
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                   [Page 6]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    *  SHOULD NOT rely on signing Message-ID or Date when a relay is
-      known to rewrite them.  (The implementation in Section 7 omits
+      known to rewrite them.  (The implementation in Section 8 omits
       both, because its outbound relay replaces the first and rewrites
       the second; the signature's "t=" tag dates it.)
 
@@ -362,7 +372,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 2.4.  What a Receiver May Trust
 
    A receiver MUST NOT act on Agent-of, Agent-attribution or AI-
-   Disclosure unless Section 4.1 ends in "signed".  Given "signed", the
+   Disclosure unless Section 5.1 ends in "signed".  Given "signed", the
    receiver may rely on the host aligned with the Agent-of domain having
    stated the kind and on-behalf-of value.  It has not learned that the
    statement is true: the host answers for it, as a domain answers for
@@ -371,10 +381,18 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 3.  Domain Keys and the Agent Card
 
    A signing domain publishes Ed25519 public keys that sign envelopes
-   (Section 5.2) and agent cards (Section 3.5), and will sign receipts
-   (Section 5.4).  The pattern is MTA-STS's [RFC8461]: a DNS record says
+   (Section 6.2) and agent cards (Section 3.5), and will sign receipts
+   (Section 6.4).  The pattern is MTA-STS's [RFC8461]: a DNS record says
    the domain takes part, and an HTTPS document on a dedicated host name
    holds the policy.
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                   [Page 7]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
 3.1.  The DNS Record
 
@@ -386,14 +404,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    The record says the domain signs.  The id is a hint to refetch.  A
    host that controls the domain's DNS SHOULD set it to the first 16
    hexadecimal characters of the SHA-256 of the policy's exact bytes, so
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                   [Page 7]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    that it changes whenever the policy does.  A host that does not
    control the DNS writes a fixed id once; nothing depends on it
    changing (Section 3.3).  A receiver MUST treat a domain with no such
@@ -430,6 +440,16 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
       (Appendix A).  A version 0 receiver MUST ignore them, and a host
       MUST NOT list in "features" anything it does not implement.
 
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                   [Page 8]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    A receiver MUST ignore members it does not recognise.  A receiver
    fetching a policy SHOULD use port 443 only, SHOULD NOT follow
    redirects, SHOULD refuse a host name that resolves to a private or
@@ -443,13 +463,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
    1.  It holds no policy for the domain.
 
-
-
-de Castro Neuhaus          Expires 7 May 2027                   [Page 8]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    2.  Its copy is at least max_age seconds old.
 
    3.  The TXT record's id differs from the one it saw when it fetched.
@@ -460,7 +473,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
        kid still unknown after that.
 
    Otherwise it verifies against the copy it holds.  This rule is the
-   discovery::decide function of the reference core (Section 7).
+   discovery::decide function of the reference core (Section 8).
 
    To rotate, a host publishes the new key beside the old one, signs
    with the new one at once, and sets the old key's not_after to max_age
@@ -483,19 +496,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    [RFC8032] accepts some such signatures; the test vectors in
    Appendix C pin the line.
 
-3.5.  The Agent Card
-
-   The card is the newest part of this document (implemented 3 November
-   2026) and the most likely to change.  Nothing in Section 4 depends on
-   it.
-
-   The declaration and the envelope give identity per message.  The card
-   gives it per address: a document, issued automatically by the
-   address's host, that says what the address is and that a holder can
-   check offline against the issuer's policy.
-
-
-
 
 
 
@@ -505,6 +505,17 @@ de Castro Neuhaus          Expires 7 May 2027                   [Page 9]
 
 Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
+
+3.5.  The Agent Card
+
+   The card is the newest part of this document (implemented 3 November
+   2026) and the most likely to change.  Nothing in Section 5 depends on
+   it.
+
+   The declaration and the envelope give identity per message.  The card
+   gives it per address: a document, issued automatically by the
+   address's host, that says what the address is and that a holder can
+   check offline against the issuer's policy.
 
 3.5.1.  Format and Signature
 
@@ -530,15 +541,26 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
    address  The address.
 
-   kind  "agent" or "service".  Never "person": a person's address has
-      no card, and a request for one is answered as for an address that
-      does not exist.
+   kind  "agent" or "service".  Never "person": a card says software
+      speaks from the address.  An address only people have sent from
+      has no card, and a request for one is answered as for an address
+      that does not exist.  An address that software has sent from,
+      declaring "agent", has a card of kind "agent" from its first such
+      message on, so the card a message names can always be fetched.
 
    on_behalf_of  As in the declaration; omitted when there is nothing to
       say.
 
    operator  {"domain", "verified"}: the account's domain and whether
       the host has verified control of it; omitted when there is none.
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 10]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    created_at  When the address was created.
 
@@ -552,15 +574,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
       "since" is a month (YYYY-MM).
 
    url  The card's permanent URL.
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 10]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
 
    A card carries only what the address's own mail already says, or
    facts about its domain: never an owner, a member, or anything a
@@ -588,12 +601,416 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    SMTP already says whether it exists and its mail says the rest; the
    implementation rate-limits the lookup per client address.
 
-4.  Verification
+3.5.3.  Revocation
+
+   An issuer revokes a card by withdrawing it: from then on a request
+   for the card, by its URL or by address, is answered as for an address
+   that does not exist (HTTP 404), and the card log records a "revoked"
+   entry for its sub (Section 3.5.7).  Revocation cannot be undone, and
+   an issuer MUST NOT reuse a revoked card's sub.  A host issuing for
+   accounts (Section 3.5.1) MUST NOT issue a card for a revoked card's
+   address again, to anybody: a receiver that trusted the address would
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 11]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   otherwise extend that trust to whoever holds it next.  A domain
+   issuing for its own addresses (Section 3.5.4) SHOULD NOT; if it does,
+   the card has a new sub and the log a new subject, so a receiver keyed
+   on sub sees a stranger.
+
+   A receiver holding a copy may believe it until its exp, at most a day
+   in the implementation.  A receiver acting on a card for something
+   that matters SHOULD fetch it afresh or check the log's head, rather
+   than rely on a copy.  Suspending an address is not revocation: its
+   card stays, with reputation standing "restricted".
+
+3.5.4.  Issuance for a Domain the Host Does Not Hold
+
+   A host can issue cards for addresses on any domain, with no account,
+   in the way ACME's DNS challenge [RFC8555] issues certificates.  The
+   operator of the domain holds the signing key; the host holds only its
+   public half and signs the cards.
+
+   1.  The operator makes an Ed25519 key.  Its key id, wherever this
+       document uses one for it (the policy's kid, the envelope's k, an
+       HTTP signature's keyid), is its JWK thumbprint [RFC8037],
+       base64url-encoded.
+
+   2.  The operator claims the domain at the host, naming the public
+       key, in a request signed by that key (Section 3.5.5, with the tag
+       "pidgeon-id").  The host answers with the record that proves the
+       claim: the domain's post TXT record (Section 3.1) with an id that
+       is the first 16 hexadecimal digits of SHA-256 over the UTF-8
+       string "post id claim", a NUL, the domain, a NUL and the key id.
+
+   3.  Once that record is published, the domain is the key's.  A claim
+       made by anyone else, before or after, names another key and so
+       another id, and never proves.  Proving the domain again with a
+       new key replaces the old key and every card issued under it.
+
+   4.  The operator registers addresses at the domain, in requests
+       signed by the domain's key.  Each gets a card (Section 3.5.1)
+       whose iss is the host's domain, whose operator is the proved
+       domain with verified true, and whose keys name the operator's
+       key.  The host signs it on each fetch, valid for a day, while the
+       record stands, so a card renews itself and lapses when the record
+       is removed.
+
+   5.  The host serves the domain's policy, from the operator's public
+       keys, at https://post.<domain> once the operator points that name
+       at it.  The policy carries no endpoint.
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 12]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   The operator's key signs the address's envelopes (Section 6.2) and
+   HTTP requests (Section 3.5.5).  A receiver verifies them against the
+   domain's policy, as for any domain.
+
+3.5.5.  Agent Requests over HTTP
+
+   An agent signs an HTTP request with HTTP Message Signatures [RFC9421]
+   in the profile of [I-D.ietf-webbotauth-httpsig-protocol], so that a
+   receiver that checks Web Bot Auth signatures needs nothing new.  The
+   implementation signs with alg "ed25519", tag "web-bot-auth", keyid
+   the key's JWK thumbprint, and a validity of five minutes.  It covers
+   @method, @authority, @path, @query when there is one, Signature-
+   Agent, From, and Content-Digest [RFC9530] when there is a body.
+
+   *  Signature-Agent is "https://post.<domain>", sent as a bare String,
+      the form deployed verifiers read today; a receiver also accepts
+      the Dictionary form the profile asks signers for.
+
+   *  From is the agent's address.  A receiver treats it as the sender
+      only when it is at the domain whose key verified the signature.
+
+   *  The domain's key directory, at https://post.<domain>/.well-known/
+      http-message-signatures-directory, lists the same keys as its
+      policy, as a JWK Set whose kids are their thumbprints.  The
+      implementation does not sign the directory response, since the
+      host does not hold the keys.
+
+   A call to an MCP server over its HTTP transport is an HTTP request,
+   and is signed the same way.
+
+   Post does not replace Web Bot Auth; it is one more way to find out
+   who holds the key.  A Web Bot Auth verifier checks a Post agent's
+   request with nothing new: same profile, same key directory, same
+   keyid.  What Post adds sits beside the signature, not in it:
+
+   *  An address.  The covered From names one agent among many under one
+      key, where Web Bot Auth names an operator.
+
+   *  The agent card (Section 3.5), found from that address: kind (agent
+      or service), on_behalf_of, a verified operator domain, and a
+      coarse standing.
+
+   *  One key for mail and HTTP.  The envelope's k and the request's
+      keyid are the same thumbprint, published in the policy and the key
+      directory alike.
+
+   A grant (Section 4) rides beside the signature in a Post-Grant field,
+   which the signature covers like From.
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 13]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+3.5.6.  A Card in an A2A Agent Card
+
+   An agent that publishes an A2A Agent Card [A2A] can carry its Post
+   identity in it with A2A's own mechanisms, so that an A2A client needs
+   nothing new and a Post-aware one can check it:
+
+   *  An entry in capabilities.extensions with uri
+      https://pidgeon.ai/post/a2a/v0, required false, and params
+      address, kind, on_behalf_of (when there is one), operator (the
+      domain), card_url and card_jws (the card's compact JWS, which is
+      the authority; the other members are for reading).
+
+   *  An entry in signatures (A2A's AgentCardSignature): JWS JSON form
+      without the payload, over the RFC 8785 [RFC8785] canonical form of
+      the Agent Card without signatures, by the operator's key.  The
+      protected header has alg "EdDSA", kid the key's JWK thumbprint,
+      and jku the domain's key directory (Section 3.5.5), which is a JWK
+      Set.
+
+   The fields map as follows: the Post card's address and kind have no
+   A2A counterpart and travel in the extension; operator corresponds to
+   AgentProvider (organization, url), which A2A does not verify and the
+   card does; the A2A card's name, description, skills and interfaces
+   have no Post counterpart.  A verifier checks the signature against
+   the key at jku, then the card_jws against its issuer's policy, then
+   that the card's address is at the domain whose key signed the A2A
+   card.
+
+   A grant (Section 4) is not part of an A2A Agent Card, which is public
+   and names no customer.  An A2A client sends it with the task instead:
+   in the message's metadata, under the extension's uri, as {"grants":
+   [<compact JWS>, ...]}.
+
+3.5.7.  The Card Log
+
+   A host that issues cards automatically can issue one for anybody,
+   including a card that names somebody else.  The card log makes every
+   card the host issues public, so the impersonated party can find it,
+   in the way Certificate Transparency [RFC9162] makes every certificate
+   public.  It is an append-only Merkle tree whose heads the host signs;
+   anyone can check that a card is in it and that the log only ever
+   grew.
+
+   An entry records a change to a card subject, not a signed card, since
+   cards are re-signed daily (Section 3.5.1).  It is a JSON object in
+   its canonical form [RFC8785], and its exact bytes are what the tree
+   hashes:
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 14]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   v  "post0-log".
+
+   event  "issued" (the subject has a card, for the first time or
+      again), "updated" (a logged member below changed), or "revoked"
+      (it has none).
+
+   time  When the log saw the change [RFC3339], to the second.
+
+   sub, address  As in the card.  Every entry about one address carries
+      the same sub.
+
+   prev  The index of the subject's previous entry; omitted on its
+      first.
+
+   iss, kind, on_behalf_of, operator  As in the card; omitted on
+      "revoked".
+
+   keys  As in the card, except that a "post" key also carries "pub",
+      the public key in base64url, so a key replaced under the same kid
+      is a change the log shows.  Omitted on "revoked".
+
+   The card's iat, exp, reputation, created_at and url are not logged:
+   they change by the day or never.
+
+   The tree is that of [RFC9162], Section 2.1: a leaf hash is SHA-256 of
+   0x00 and the entry's bytes, an interior node SHA-256 of 0x01 and its
+   children, and inclusion and consistency proofs are built and verified
+   as Sections 2.1.3 and 2.1.4 say.  The signed tree head is a
+   checkpoint [C2SP.checkpoint]: three lines (the log's origin, its size
+   in decimal, its root hash in base64) in a signed note
+   [C2SP.signed-note] with one Ed25519 signature [RFC8032], whose key
+   name is the origin.  The log's key is the log's identity and never
+   rotates; a client pins it as a signed-note verifier key.
+
+   The implementation serves, with no credentials:
+
+   *  GET /v1/log/head and, as text, GET /v1/log/checkpoint: the current
+      checkpoint and verifier key.
+
+   *  GET /v1/log/entries?start=&end=: entries by index, each with its
+      exact bytes.
+
+   *  GET /v1/log/proof?sub= (or index and tree_size): an inclusion
+      proof against a checkpoint.
+
+   *  GET /v1/log/consistency?first=&second=: a consistency proof
+      between two sizes.
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 15]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   A verifier given a card and an inclusion proof hashes the entry's
+   bytes, checks that the entry's sub and claims are the card's,
+   verifies the checkpoint with the pinned key, and verifies the proof
+   against its root.  The implementation's verifier returns that proof
+   with its verdict.  A monitor keeps the last checkpoint it verified,
+   asks for a consistency proof each time the size grows, and reads the
+   new entries; a card it did not expect, for a name it watches, is the
+   alarm.  The log is reconciled from the cards every five minutes, its
+   maximum merge delay.  The Card Log vectors are in Appendix D.
+
+4.  Grants
+
+   Grants are newer than the card (implemented 4 November 2026) and the
+   most likely part of this document to change.
+
+   The card says who an agent is and for whom it acts.  A grant says
+   what it may do: that a person or an organisation allowed this agent
+   to act within a named scope, for one customer, account or order, with
+   one recipient, until a time.  A recipient that is about to act on an
+   agent's request (a support desk changing a booking, a vendor issuing
+   a refund) checks the grant before it acts.
+
+4.1.  Format and Signature
+
+   A grant is a JWS [RFC7515] in compact serialisation, with protected
+   header {"alg": "EdDSA", "typ": "agent-grant+jwt", "kid": <kid>},
+   signed and verified as a card is (Section 3.5.1).  The typ keeps a
+   grant from being taken for a card or another token signed by the same
+   key.  The payload:
+
+   iss  https://post.<issuer domain>: the host that saw the grantor
+      agree.  The implementation signs with the key of the domain that
+      signs the cards it issues itself.
+
+   jti  The grant's identifier, which the issuer never reuses.
+
+   sub  The agent's card sub (Section 3.5.1).
+
+   agent  The agent's address.
+
+   iat, exp  Issued and expiry times, in seconds since the epoch.  The
+      implementation lets the operator cap the term, at most 366 days.
+
+   v  "post0".
+
+   grantor  {"type": "person", "email", "confirmed_by"}, where
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 16]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+      confirmed_by is "email" (the person followed a link the issuer
+      sent to that address) or "session" (they were signed in to the
+      issuer as it); or {"type": "organisation", "domain",
+      "confirmed_by": "domain"}, a domain the issuer has verified,
+      granted by an administrator of the account that holds it.
+
+   scope  {"name", "label", "limit"?}: name is stable, for software
+      ("bookings.manage"); label is what the grantor was shown ("manage
+      your bookings"); limit is {"amount", "currency"}, an integer in
+      the currency's minor units and an ISO 4217 code.  Scopes are the
+      operator's; this document defines none.
+
+   aud  The domain the agent may act with.  Omitted: any.
+
+   subject  {"type", "id"}: type is "customer", "account" or "order",
+      and id is in the recipient's own terms.
+
+   status  An https URL at the issuer that answers whether the grant
+      still holds (Section 4.4).
+
+4.2.  Issuing
+
+   The operator of an agent defines the scopes its agents may ask for.
+   The agent asks a person, by email address, for one scope, one subject
+   and a term; the issuer makes a pending request and a consent page,
+   which says, for example, "Acme's assistant wants to manage your
+   bookings with Delta until 31 December 2026".  The person answers
+   there.  Holding the page's address is not consent, since the operator
+   holds it too: the person allows the grant only after following a link
+   the issuer sends to the address asked, or while signed in to the
+   issuer as that address.  Only then does the issuer sign.  An
+   organisation grants its own agents directly.  Either the grantor or
+   the operator may revoke a grant at any time, and a revoked grant is
+   never restored.
+
+4.3.  Carrying a Grant
+
+   *  In mail: a Post-Grant header field per grant, whose value is the
+      compact JWS.  White space in the value is not part of it, so a
+      sender may break the value at any point to fold the field; a
+      receiver removes all white space.
+
+   *  In HTTP: a Post-Grant field, several grants separated by commas (a
+      JWS contains none), covered by the request's signature
+      (Section 3.5.5).
+
+   *  In an MCP call: under the key ai.pidgeon.post/grant in the
+      request's _meta, as a compact JWS or a list of them.
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 17]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   *  In A2A: in the message's metadata (Section 3.5.6).
+
+   A receiver reads at most five grants from one message or request.
+
+4.4.  Checking a Grant
+
+   A grant on its own proves nothing about who presents it: it is a
+   bearer statement until it is bound to a signature.  A receiver
+   accepts a grant only when all of the following hold, and reports the
+   first that does not:
+
+   1.  It is a grant: a compact JWS with this typ and every member above
+       ("malformed").
+
+   2.  Its iss is an issuer the receiver checks grants from
+       ("unknown_issuer"), and the signature verifies under the key kid
+       names in that issuer's policy ("bad_signature").
+
+   3.  The issuer holds it in force: given, not revoked ("revoked"), and
+       the same grant ("not_found").  A receiver that is not the issuer
+       asks the status URL, which answers {"object": "grant_status",
+       "id", "status", "expires_at", "revoked_at"} with status "active",
+       "revoked" or "expired", and 404 for a grant never given.  The
+       implementation's verifier reads its own record on every check,
+       and its status URL is cached for at most thirty seconds, so a
+       revocation is seen within a minute.
+
+   4.  exp is in the future ("expired").
+
+   5.  A signature on the same message or request verifies as an address
+       (Section 5, Section 3.5.5) ("sender_unverified"), and that
+       address is the grant's agent, still holding the grant's sub
+       ("wrong_agent").
+
+   6.  Where the receiver knows where it arrived (the recipient's
+       address, or the request's host), that is aud or under it
+       ("wrong_audience").
+
+   7.  Where the receiver knows which customer, account or order it is
+       about to act on, that is subject.id ("wrong_subject").
+
+   A grant never changes the verdict on the sender; it is a separate
+   answer about what the sender may do.
+
+5.  Verification
 
    A receiver checks the two layers independently.  Either may be
    absent; each has its own outcome.
 
-4.1.  The Declaration
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 18]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+5.1.  The Declaration
 
    1.  If the message has none of Agent-of, Agent-attribution and AI-
        Disclosure, the outcome is "absent".
@@ -610,14 +1027,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    3.  Verify such a signature [RFC6376].  If none verifies over the
        header fields, the outcome is "changed".
 
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 11]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    4.  Read the facts only from the field instances the signature
        covered (in DKIM, the last instances).  An instance outside the
        signature, such as a second Agent-of added in transit, MUST be
@@ -630,7 +1039,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
        "changed", and a receiver MUST NOT treat the body as the
        sender's.
 
-4.2.  The Envelope
+5.2.  The Envelope
 
    For a message with a Post-Envelope field, in this order, stopping at
    the first failure:
@@ -650,6 +1059,13 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    4.  *Signature.* Decode m and s, and verify s over the bytes of m,
        strictly (Section 3.4).  Otherwise: bad_signature.
 
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 19]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    5.  *Message.* The bytes of m MUST be valid UTF-8 JSON with v "post0"
        and a sender.kind that is a sender kind.  Otherwise:
        invalid_message.
@@ -665,15 +1081,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
        *  the text part equals the message's text/plain body, after
           converting CRLF to LF and removing trailing whitespace from
           both (text_mismatch);
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 12]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
        *  the data part, if any, equals the typed data in the MIME, and
           there is typed data in the MIME only if there is a data part
           (data_mismatch);
@@ -689,7 +1096,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
    Without a Post-Envelope field the outcome is "none".
 
-4.3.  Combining the Outcomes
+5.3.  Combining the Outcomes
 
    *  Envelope "pass": the declared sender is the envelope's.  It is the
       sending domain's own statement, and it is bound to the content.
@@ -705,12 +1112,22 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    A failed envelope is evidence that something is wrong.  A receiver
    MUST NOT treat it as "pass", and MAY refuse the message.
 
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 20]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    "pass" proves that the domain wrote this content for these To and Cc
    recipients.  It does not prove that this copy was sent to this
-   receiver (Section 8.3), and it does not replace DMARC as the test of
+   receiver (Section 9.3), and it does not replace DMARC as the test of
    whether the From domain sent this copy.
 
-5.  Between Post Endpoints
+6.  Between Post Endpoints
 
    When both ends implement Post, the same message carries more than
    either end gets from ordinary mail.  Version 0 specifies what an
@@ -718,26 +1135,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    between two endpoints run by the same host; delivery over HTTPS
    between hosts is future work.
 
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 13]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
-5.1.  Knowing the Other End Speaks Post
+6.1.  Knowing the Other End Speaks Post
 
    A sender learns that a recipient's domain signs from the _post record
    (Section 3.1).  Version 0 gives no stronger signal: a domain that
    signs is not thereby promising to verify.  A host may know more about
    addresses it hosts itself.
 
-5.2.  The Signed Envelope
+6.2.  The Signed Envelope
 
    A signing domain signs each message it sends as a JSON document, the
    "message", and carries it with the signature in a header field.  A
@@ -745,7 +1150,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    sender and the content against the domain's signature, with no DKIM
    involved and no dependence on how relays rewrite the MIME.
 
-5.2.1.  The Message
+6.2.1.  The Message
 
    A JSON object, UTF-8, serialised once.  Members:
 
@@ -766,6 +1171,13 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    to, cc  Arrays of addresses, as in the To and Cc fields.  Bcc
       recipients never appear.
 
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 21]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    created_at  When the message was written.
 
    subject  The Subject, decoded.
@@ -775,17 +1187,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
       *  exactly one text part: {"role":"text", "type":"text/plain",
          "body": <the text>};
       *  at most one data part: {"role":"data", "schema": <URL>, "body":
-         <any JSON>} (Section 5.2.3);
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 14]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
+         <any JSON>} (Section 6.2.3);
       *  one attachment part per file: {"role":"attachment", "type":
          <media type>, "name": <file name>, "sha256": <hex>, "size":
          <octets>}.
@@ -797,7 +1199,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    The message carries files by hash only: at the SMTP border the bytes
    travel in the MIME beside it.
 
-5.2.2.  The Post-Envelope Header Field
+6.2.2.  The Post-Envelope Header Field
 
    The field's value is a list of tag=value pairs as in DKIM [RFC6376]
    Section 3.2:
@@ -822,25 +1224,28 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    from a DKIM "b=" tag.  A receiver MUST ignore tags it does not
    recognise.
 
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 22]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    A sender SHOULD NOT emit the field when the message is larger than 24
    KiB before encoding: some mail systems discard header text past 100
    KB, which would leave an envelope that cannot be verified.  Such a
    message goes out without one, as does mail from a domain that does
    not sign.
 
-5.2.3.  Typed Data in MIME
+6.2.3.  Typed Data in MIME
 
    A message may carry one piece of structured data beside its text: a
    "schema", an http or https URL of at most 900 characters naming what
    the data is (for example https://schema.org/Offer), and a "body", any
    JSON value of at most 64 KiB serialised.  It travels:
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 15]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
 
    *  in the envelope, as the data part;
 
@@ -859,11 +1264,11 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    it as instructions, and a screening system that reads prose for
    prompt injection has no reason to read it.
 
-5.3.  Delivery
+6.3.  Delivery
 
    A sender delivers one copy per recipient, carrying the Post-Envelope
    field, the typed data alternative and the agent declaration.  A
-   receiving endpoint runs Section 4.2 before storing anything.  On
+   receiving endpoint runs Section 5.2 before storing anything.  On
    "pass" it stores the copy with the declared sender from the envelope
    and the text (not the HTML), and reports that the signature passed.
    On failure it MUST NOT store the copy as verified.
@@ -874,7 +1279,18 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    The Message-ID SHOULD be the same on every recipient's copy, so a
    reply from an ordinary mail client threads back to the conversation.
 
-5.4.  Receipts
+
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 23]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+6.4.  Receipts
 
    A receipt tells a sender what happened to a message after it reached
    the recipient's endpoint.  Kinds:
@@ -890,23 +1306,15 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
    failed  The message could not be delivered.
 
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 16]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    A receiving endpoint sends each kind at most once per received copy.
 
-5.4.1.  The Receipt
+6.4.1.  The Receipt
 
    A JSON object, signed as exact bytes like the message:
 
    v  "post0".
 
-   message_id  The id of the message (Section 5.2.1).
+   message_id  The id of the message (Section 6.2.1).
 
    from_domain  The sending domain.  Ids are unique per sending domain
       only, so the pair names the message.
@@ -921,43 +1329,40 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    policy.  A sender that keeps the bytes and the signature can show a
    third party that the recipient's domain confirmed the event.
 
-5.4.2.  Carrying a Receipt
+6.4.2.  Carrying a Receipt
 
    A receipt travels as a JSON object with members "v" ("post0"), "d"
    (the recipient's domain), "kid", "receipt" (the receipt bytes,
    base64url) and "sig" (the signature, base64url).  A receiver of a
-   receipt verifies it as in Section 4.2 steps 3 and 4, against d's
+   receipt verifies it as in Section 5.2 steps 3 and 4, against d's
    policy, and checks that recipient's domain is d.
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 24]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    How a receipt reaches the sender is outside version 0; between
    addresses on one host it is an internal event.  Over HTTPS between
    hosts it is future work (Appendix A).
 
-6.  Names on the Wire
+7.  Names on the Wire
 
    These identifiers carry the protocol's name:
-
-
-
-
-
-
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 17]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
 
          +========================+==============================+
          | Identifier             | Where                        |
          +========================+==============================+
-         | Post-Envelope          | Header field (Section 5.2.2) |
+         | Post-Envelope          | Header field (Section 6.2.2) |
+         +------------------------+------------------------------+
+         | Post-Grant             | Header field, mail and HTTP  |
+         |                        | (Section 4.3)                |
+         +------------------------+------------------------------+
+         | ai.pidgeon.post/grant  | MCP _meta key (Section 4.3)  |
          +------------------------+------------------------------+
          | post0                  | Version string in every      |
          |                        | object and record            |
@@ -967,13 +1372,13 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
          | post.<domain>, /.well- | Policy location              |
          | known/post.json        | (Section 3.2)                |
          +------------------------+------------------------------+
-         | application/           | Media type (Section 5.2.3)   |
+         | application/           | Media type (Section 6.2.3)   |
          | vnd.post+json          |                              |
          +------------------------+------------------------------+
 
                                   Table 1
 
-7.  Implementation Status
+8.  Implementation Status
 
    This section is to be removed before publication, as [RFC7942]
    describes.
@@ -984,11 +1389,18 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    On 3 November 2026 the agent declaration was on 565 of 984 messages
    sent in the previous 7 days.  Every message sent through the API from
    a signing domain carries Post-Envelope, unless it is over the size
-   limit of Section 5.2.2; messages from a user's own mail client by
+   limit of Section 6.2.2; messages from a user's own mail client by
    SMTP submission carry none.  Between two Pidgeon addresses on signing
-   domains, copies are delivered directly and verified by Section 4.2
+   domains, copies are delivered directly and verified by Section 5.2
    before they are stored; a copy that fails is refused and sent as
    ordinary mail.
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 25]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    The core is "post-core", in Rust (Apache-2.0), with a WebAssembly
    binding: Ed25519 signing and strict verification, and the refetch
@@ -996,19 +1408,17 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    from the running code.
 
    Pidgeon also runs a public checker for the declaration, which reports
-   the outcomes of Section 4.1 for a pasted message.
+   the outcomes of Section 5.1 for a pasted message, and of
+   Section 3.5.5 for a signed request.  It issues cards for domains it
+   does not host (Section 3.5.4); the operator's side is "@pidgeon-ai/
+   id" (Apache-2.0), a command line and the signing library, over the
+   same post-core.
 
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 18]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
+   Grants (Section 4) are issued for addresses the implementation hosts,
+   through its consent page, and checked by the same public checker;
+   "@pidgeon-ai/id" carries them in mail and HTTP.  It issues none yet
+   for domains it does not host, and does not check grants from other
+   issuers.
 
    Known limits of the implementation: its inbound path from ordinary
    email does not yet verify Post-Envelope fields from other domains
@@ -1017,9 +1427,9 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    not a second one from a customer's domain; and no receiver other than
    Pidgeon is known.
 
-8.  Security Considerations
+9.  Security Considerations
 
-8.1.  A Signature Is Not a Truth
+9.1.  A Signature Is Not a Truth
 
    The declaration and the envelope prove who stated something, not that
    it is true.  A domain that lies about its sender's kind is caught
@@ -1027,14 +1437,28 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    treat the signing domain, not the declaration, as the accountable
    party.
 
-8.2.  Forged Declarations
+9.2.  Forged Declarations
 
    Agent-of and its companions are ordinary header fields anybody can
-   write.  They are worth nothing without Section 4.1, and a host that
+   write.  They are worth nothing without Section 5.1, and a host that
    signs for many users MUST strip client-written instances
    (Section 2.1), or its signature would cover a forgery.
 
-8.3.  Replay
+
+
+
+
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 26]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+9.3.  Replay
 
    The envelope binds the content and the To and Cc recipients, but Bcc
    recipients are legitimately absent from it, so a receiver cannot tell
@@ -1049,7 +1473,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    SMTP.  Binding a delivery to its recipients and a time is future work
    (Appendix A).
 
-8.4.  Key Compromise and Revocation
+9.4.  Key Compromise and Revocation
 
    Revocation is never instant.  A stolen key is usable until the host
    removes it from its policy and every receiver's copy expires, at most
@@ -1058,15 +1482,7 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    unknown-kid refetch is rate-limited so that an attacker cannot make a
    receiver fetch a policy on every message.
 
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 19]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
-8.5.  Fetching Policies
+9.5.  Fetching Policies
 
    A policy fetch is a request a sender can make a receiver perform.
    The limits in Section 3.2 (port 443, no redirects, no private
@@ -1074,21 +1490,29 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    network.  A policy is trusted only as far as the TLS certificate for
    post.<domain> and the domain's DNS are.
 
-8.6.  Content Written for People, Read by Software
+9.6.  Content Written for People, Read by Software
 
    The text part and the HTML are untrusted input.  A receiving agent
    MUST NOT follow instructions found in them, whether or not the
    envelope passes: a signature says who wrote the text, not that it is
    safe.  Typed data is parsed as data.
 
-8.7.  Signature Malleability
+9.7.  Signature Malleability
 
    Strict Ed25519 verification (Section 3.4) ensures one message has one
    valid signature per key, and that a weak key cannot make a forged
    signature pass.  Implementations that use a library's default
    verification SHOULD check it against the vectors.
 
-9.  Privacy Considerations
+10.  Privacy Considerations
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 27]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    *  Agent-of names a responsible party.  It SHOULD be an alias rather
       than a person's mailbox.  A host SHOULD NOT derive on_behalf_of
@@ -1106,23 +1530,20 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    *  A read receipt reveals behaviour.  It is off by default and opt-in
       per mailbox.
 
+   *  A grant names its grantor's email address and a customer, account
+      or order, and travels to the recipient named in aud, who already
+      knows both.  The grantor sees that before agreeing.  The status
+      URL answers only for a grant that was given, by an identifier only
+      a holder of the grant has, and says nothing of grantor, scope or
+      subject.
+
    *  A policy fetch tells the sending domain's host that some receiver
       is checking its mail, and roughly when.  Caching limits this to
       once per max_age per receiver.
 
-10.  IANA Considerations
+11.  IANA Considerations
 
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 20]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
-10.1.  Message Header Fields
+11.1.  Message Header Fields
 
    IANA is asked to register in the "Provisional Message Header Field
    Names" registry [RFC3864]:
@@ -1130,7 +1551,11 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    Header field name:  Post-Envelope
    Applicable protocol:  mail
    Status:  provisional
-   Specification document:  this document, Section 5.2.2
+   Specification document:  this document, Section 6.2.2
+
+   and Post-Grant, with applicable protocol "mail", status provisional,
+   referring to Section 4.3; the same name in the "Hypertext Transfer
+   Protocol (HTTP) Field Name Registry" [RFC9110], status provisional;
 
    and AI-Disclosure, with applicable protocol "mail", status
    provisional, referring to [I-D.abaris-aicdh] for syntax and this
@@ -1138,45 +1563,41 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    attribution are left to [I-D.chuang-agent-attribution-header-fields],
    which requests no registration yet.
 
-10.2.  Well-Known URI
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 28]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+11.2.  Well-Known URI
 
    IANA is asked to register "post.json" in the "Well-Known URIs"
    registry [RFC8615], status provisional, referring to Section 3.2.
    The card lookup (Section 3.5.2) uses "post/card"; whether it becomes
    a second registration or moves under one name is open.
 
-10.3.  Media Type
+11.3.  Media Type
 
    The media type application/vnd.post+json is to be registered in the
    vendor tree [RFC6838], with required parameter "schema" (an http or
    https URL) and optional "charset" ("utf-8").
 
-10.4.  Underscored DNS Node Name
+11.4.  Underscored DNS Node Name
 
    IANA is asked to add "_post", RR type TXT, to the "Underscored and
    Globally Scoped DNS Node Names" registry [RFC8552], referring to
    Section 3.1.
 
-10.5.  Agent-attribution Members
+11.5.  Agent-attribution Members
 
    When the registry anticipated by
    [I-D.chuang-agent-attribution-header-fields] exists, the members in
    Section 2.1 are to be registered in it.
 
-11.  References
+12.  References
 
-11.1.  Normative References
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 21]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
+12.1.  Normative References
 
    [I-D.abaris-aicdh]
               Abaris, D., "AI Content Disclosure Header", Work in
@@ -1195,6 +1616,15 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
               <https://www.rfc-editor.org/info/rfc2119>.
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 29]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    [RFC3339]  Klyne, G. and C. Newman, "Date and Time on the Internet:
               Timestamps", RFC 3339, DOI 10.17487/RFC3339, July 2002,
@@ -1218,6 +1648,11 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               DOI 10.17487/RFC8032, January 2017,
               <https://www.rfc-editor.org/info/rfc8032>.
 
+   [RFC8037]  Liusvaara, I., "CFRG Elliptic Curve Diffie-Hellman (ECDH)
+              and Signatures in JSON Object Signing and Encryption
+              (JOSE)", RFC 8037, DOI 10.17487/RFC8037, January 2017,
+              <https://www.rfc-editor.org/info/rfc8037>.
+
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/info/rfc8174>.
@@ -1227,16 +1662,29 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               DOI 10.17487/RFC8259, December 2017,
               <https://www.rfc-editor.org/info/rfc8259>.
 
+   [RFC8615]  Nottingham, M., "Well-Known Uniform Resource Identifiers
+              (URIs)", RFC 8615, DOI 10.17487/RFC8615, May 2019,
+              <https://www.rfc-editor.org/info/rfc8615>.
+
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/info/rfc9110>.
+
+   [RFC9421]  Backman, A., Ed., Richer, J., Ed., and M. Sporny, "HTTP
+              Message Signatures", RFC 9421, DOI 10.17487/RFC9421,
+              February 2024, <https://www.rfc-editor.org/info/rfc9421>.
 
 
-de Castro Neuhaus          Expires 7 May 2027                  [Page 22]
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 30]
 
 Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
 
-   [RFC8615]  Nottingham, M., "Well-Known Uniform Resource Identifiers
-              (URIs)", RFC 8615, DOI 10.17487/RFC8615, May 2019,
-              <https://www.rfc-editor.org/info/rfc8615>.
+   [RFC9530]  Polli, R. and L. Pardue, "Digest Fields", RFC 9530,
+              DOI 10.17487/RFC9530, February 2024,
+              <https://www.rfc-editor.org/info/rfc9530>.
 
    [RFC9651]  Nottingham, M. and P. Kamp, "Structured Field Values for
               HTTP", RFC 9651, DOI 10.17487/RFC9651, September 2024,
@@ -1247,7 +1695,26 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               RFC 9989, DOI 10.17487/RFC9989, May 2026,
               <https://www.rfc-editor.org/info/rfc9989>.
 
-11.2.  Informative References
+12.2.  Informative References
+
+   [A2A]      A2A Project, Linux Foundation, "Agent2Agent (A2A) Protocol
+              Specification, version 1.0.0", 2026,
+              <https://a2a-protocol.org/latest/specification/>.
+
+   [C2SP.checkpoint]
+              C2SP, "Transparency Log Checkpoints", 2026,
+              <https://c2sp.org/tlog-checkpoint>.
+
+   [C2SP.signed-note]
+              C2SP, "Note Signatures", 2026,
+              <https://c2sp.org/signed-note>.
+
+   [I-D.ietf-webbotauth-httpsig-protocol]
+              Meunier, T., "HTTP Message Signatures for Automated
+              Traffic", Work in Progress, Internet-Draft, draft-ietf-
+              webbotauth-httpsig-protocol-01, 29 October 2026,
+              <https://datatracker.ietf.org/doc/draft-ietf-webbotauth-
+              httpsig-protocol/01/>.
 
    [I-D.ietf-wimse-aims]
               IETF WIMSE Working Group, "AI Identity Management System",
@@ -1262,6 +1729,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               Progress, Internet-Draft, draft-ietf-wimse-arch-08, 6 July
               2026, <https://datatracker.ietf.org/doc/draft-ietf-wimse-
               arch/08/>.
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 31]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    [RFC3864]  Klyne, G., Nottingham, M., and J. Mogul, "Registration
               Procedures for Message Header Fields", BCP 90, RFC 3864,
@@ -1281,15 +1756,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
               2015, <https://www.rfc-editor.org/info/rfc7515>.
 
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 23]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    [RFC7942]  Sheffer, Y. and A. Farrel, "Improving Awareness of Running
               Code: The Implementation Status Section", BCP 205,
               RFC 7942, DOI 10.17487/RFC7942, July 2016,
@@ -1305,10 +1771,37 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
               BCP 222, RFC 8552, DOI 10.17487/RFC8552, March 2019,
               <https://www.rfc-editor.org/info/rfc8552>.
 
+   [RFC8555]  Barnes, R., Hoffman-Andrews, J., McCarney, D., and J.
+              Kasten, "Automatic Certificate Management Environment
+              (ACME)", RFC 8555, DOI 10.17487/RFC8555, March 2019,
+              <https://www.rfc-editor.org/info/rfc8555>.
+
+   [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Ed., Bradley, J.,
+              and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
+              DOI 10.17487/RFC8693, January 2020,
+              <https://www.rfc-editor.org/info/rfc8693>.
+
+   [RFC8785]  Rundgren, A., Jordan, B., and S. Erdtman, "JSON
+              Canonicalization Scheme (JCS)", RFC 8785,
+              DOI 10.17487/RFC8785, June 2020,
+              <https://www.rfc-editor.org/info/rfc8785>.
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 32]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
    [RFC8792]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
               "Handling Long Lines in Content of Internet-Drafts and
               RFCs", RFC 8792, DOI 10.17487/RFC8792, June 2020,
               <https://www.rfc-editor.org/info/rfc8792>.
+
+   [RFC9162]  Laurie, B., Messeri, E., and R. Stradling, "Certificate
+              Transparency Version 2.0", RFC 9162, DOI 10.17487/RFC9162,
+              December 2021, <https://www.rfc-editor.org/info/rfc9162>.
 
    [RFC9420]  Barnes, R., Beurdouche, B., Robert, R., Millican, J.,
               Omara, E., and K. Cohn-Gordon, "The Messaging Layer
@@ -1336,26 +1829,26 @@ Appendix A.  Future Work
    *  *Attachments by capability URL*, fetched by the recipient before
       it reports delivered, and an "accepted" receipt.
 
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 24]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    *  *Signing in with an address.* The policy's identity.issuer as an
-      OpenID Connect issuer for the domain's addresses (running at
-      Pidgeon; to be specified separately).
+      OpenID Connect issuer for the domain's addresses, including OAuth
+      token exchange [RFC8693] in which the token names the person as
+      sub and the agent as act (running at Pidgeon; to be specified
+      separately).
 
-   *  *The agent card*, final (Section 3.5): revocation, and cards for
-      agents on hosts other than the implementation's; and a public
-      verification API.
+   *  *The agent card*, final (Section 3.5): cards for agents on hosts
+      other than the implementation's, and a public verification API.
 
    *  *A second DKIM signature* over the declaration from the customer's
       own domain.
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 33]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    *  *End-to-end encryption* with MLS [RFC9420], between mailboxes.
       Version 0 reserves the message member "enc"; a version 0 receiver
@@ -1390,18 +1883,6 @@ Appendix B.  Notes for a Second Implementation
    *  Rate-limit unknown-kid refetches per domain, across all of your
       processes.
 
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 25]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    A conformant receiver: verifies every valid vector; refuses every
    vector marked invalid; on the message in Appendix D reaches "pass"
    for the envelope given the sender's policy, and "signed" with body
@@ -1417,6 +1898,13 @@ Appendix C.  Ed25519 Vectors
    message, a wrong key, S + L (non-canonical S), and the identity point
    as key and R with S = 0 (passes plain RFC 8032 verification for any
    message).  A conformant verifier accepts exactly those marked valid.
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 34]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
 Appendix D.  Test Vectors
 
@@ -1450,19 +1938,29 @@ D.2.  Discovery
 
    The TXT record at _post.acme.example:
 
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 26]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    v=post0; id=ae068fffefd849fa
 
    The policy served at https://post.acme.example/.well-known/post.json,
    exactly (it ends with a line feed).  Its SHA-256, in hex, begins with
    the TXT record's id:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 35]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    {
      "v": "post0",
@@ -1493,27 +1991,6 @@ D.3.  The Signed Message
    only; the signed bytes contain no line breaks and no spaces outside
    strings:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 27]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    {"v":"post0",
    "id":"7f1c2a9e-4b3d-4e5f-9a8b-0c1d2e3f4a5b",
    "thread":{"id":"2b8e6f10-3c4d-4a5b-8c9d-0e1f2a3b4c5d"},
@@ -1532,6 +2009,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    "body":{"identifier":"INV-2026-0418",
    "totalPaymentDue":{"price":1240.5,
    "priceCurrency":"EUR"}}}]}
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 36]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    SHA-256 of the message bytes, in hex:
 
@@ -1563,13 +2048,6 @@ D.4.  The Agent Declaration
 
    The DKIM key record, at spec-vector._domainkey.pidgeon.email:
 
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 28]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3p
    sffalJyYCWMhXZYhQMcYhjOvK9xs+xSt0j0nvKzhe8WEH/GT2yi2wxYHUDA5g8TV
    0/P6YVqc8EUrDxFTuI/B7Pfn8qwYO9JZC8Ue5jsn8KJNtfDPOy7mZl53J15alind
@@ -1582,6 +2060,19 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    and carrying the Post-Envelope field.  Long lines are wrapped as in
    [RFC8792]; in post-v0.json each line ends with CRLF and is unbroken.
    DKIM verification of it passes:
+
+
+
+
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 37]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    NOTE: '\' line wrapping per RFC 8792
 
@@ -1618,14 +2109,6 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    GD16ENe6mp2L
     q_14fCHTBg;
     m=eyJ2IjoicG9zdDAiLCJpZCI6IjdmMWMyYTllLTRiM2QtNGU1Zi05YThiLTBjMWQy\
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 29]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    ZTNmNGE1YiIs
     InRocmVhZCI6eyJpZCI6IjJiOGU2ZjEwLTNjNGQtNGE1Yi04YzlkLTBlMWYyYTNiNG\
    M1ZCJ9LCJz
@@ -1639,6 +2122,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    J0eXBlIjoi
     dGV4dC9wbGFpbiIsImJvZHkiOiJIZWxsbywgb3VyIGludm9pY2UgZm9yIE9jdG9iZX\
    IgaXMgYXR0
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 38]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
     YWNoZWQuXG5cbkFjbWUgTHRkIn0seyJyb2xlIjoiZGF0YSIsInNjaGVtYSI6Imh0dH\
    BzOi8vc2No
     ZW1hLm9yZy9JbnZvaWNlIiwiYm9keSI6eyJpZGVudGlmaWVyIjoiSU5WLTIwMjYtMD\
@@ -1654,33 +2145,6 @@ D.5.  The Agent Card
 
    The card for the sending address, signed with the sending domain's
    key.  The payload:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 30]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
 
    {
      "iss": "https://post.acme.example",
@@ -1715,28 +2179,14 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
      "url": "https://pidgeon.ai/api/v1/cards/id_7Hq2Mx9Kp4Rt"
    }
 
-   The compact JWS, whose signature verifies under the key above:
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 31]
+de Castro Neuhaus          Expires 7 May 2027                  [Page 39]
 
 Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
 
+
+   The compact JWS, whose signature verifies under the key above:
 
    eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWNhcmQrand0Iiwia2lkIjoiMjAy
    Ni0xMC0yMi4xIn0.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiwi
@@ -1753,7 +2203,191 @@ Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
    OUtwNFJ0In0.Sj3Z4oJJhmkGRzPoCuBr9DO_yF1Pw1mjVhYtdQMsFPen9W71JfRR
    N4lIld9VfhvWW-fi7bBP_c-mcNLw0i0bDw
 
-D.6.  A Signed Receipt
+D.6.  The Card Log
+
+   A log whose origin is log.example/cards, its key's seed (hex):
+
+   404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f
+
+   Its verifier key:
+
+   log.example/cards+399d3d39+ASVDuS/xCVURR2rcg2nbbdyTNmWhGXjdoUBO4
+   QZsqVWd
+
+   Three entries about the card above: issued, renamed, revoked.  Each
+   is shown as its exact bytes, then its leaf hash in hex:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 40]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   0:
+     {"address":"billing-agent@acme.example","event":"issued","iss":"
+     https://post.acme.example","keys":[{"domain":"acme.example","kid
+     ":"2026-10-22.1","pub":"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJV
+     Mbg","type":"post"},{"domain":"pidgeon.email","selector":"spec-v
+     ector","type":"dkim"}],"kind":"agent","on_behalf_of":"Acme Ltd",
+     "operator":{"domain":"acme.example","verified":true},"sub":"id_7
+     Hq2Mx9Kp4Rt","time":"2026-09-01T09:00:00Z","v":"post0-log"}
+   leaf:
+     1580e8ead3f636bd151354f81e01ddb75d954d2563d1623752d9b488c1cb7aae
+
+   1:
+     {"address":"billing-agent@acme.example","event":"updated","iss":
+     "https://post.acme.example","keys":[{"domain":"acme.example","ki
+     d":"2026-10-22.1","pub":"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJ
+     VMbg","type":"post"},{"domain":"pidgeon.email","selector":"spec-
+     vector","type":"dkim"}],"kind":"agent","on_behalf_of":"Acme Grou
+     p","operator":{"domain":"acme.example","verified":true},"prev":0
+     ,"sub":"id_7Hq2Mx9Kp4Rt","time":"2026-10-22T14:00:00Z","v":"post
+     0-log"}
+   leaf:
+     e25b4a237b11c2231e7011bd6f08dc47c4874cdb8036289216de6acd5fb35134
+
+   2:
+     {"address":"billing-agent@acme.example","event":"revoked","prev"
+     :1,"sub":"id_7Hq2Mx9Kp4Rt","time":"2026-11-04T08:00:00Z","v":"po
+     st0-log"}
+   leaf:
+     7d007019c0b4116da40cbf19d0d8024748f2a5e3199f767a9856c30e8651da2f
+
+   The tree heads at sizes 1, 2 and 3, in hex:
+
+   1580e8ead3f636bd151354f81e01ddb75d954d2563d1623752d9b488c1cb7aae
+   745231431f9fab8550cea68ed6f0bada9d9dcf065175e8be7d2d844999751bab
+   7d25bb3b1fde0f1421c2feef142217005a49efd7fc93f734dc0df252c125418f
+
+   The checkpoint at size 3, signed with the log's key.  Its last line
+   is wrapped as in [RFC8792]; the checkpoint ends with a line feed:
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   log.example/cards
+   3
+   fSW7Ox/eDxQhwv7vFCIXAFpJ79f8k/c03A3yUsElQY8=
+
+   — log.example/cards OZ09Of730w5zXqo4Ft/XxUlpaaSkvXdcjvo1Wvgz22C\
+   ubSPk1hWfURzEp2cJ5LhE25u7xw8gFyDmRVaYjrrHU7NAEAg=
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 41]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   The inclusion proof of entry 1 in the tree of 3, and the consistency
+   proof from 2 to 3, base64:
+
+   inclusion (index 1, size 3):
+     FYDo6tP2Nr0VE1T4HgHdt12VTSVj0WI3Utm0iMHLeq4=
+     fQBwGcC0EW2kDL8Z0NgCR0jypeMZn3Z6mFbDDoZR2i8=
+   consistency (2 to 3):
+     fQBwGcC0EW2kDL8Z0NgCR0jypeMZn3Z6mFbDDoZR2i8=
+
+D.7.  A Grant
+
+   A grant to the sending address (Section 4), signed here with the
+   sending domain's key so that one key checks every vector; the
+   implementation's grants are signed by the host.  The payload:
+
+   {
+     "iss": "https://post.acme.example",
+     "jti": "3c1e5b7a",
+     "sub": "id_7Hq2Mx9Kp4Rt",
+     "agent": "billing-agent@acme.example",
+     "iat": 1792677791,
+     "exp": 1798761600,
+     "v": "post0",
+     "grantor": {
+       "type": "person",
+       "email": "jo@customer.example",
+       "confirmed_by": "email"
+     },
+     "scope": {
+       "name": "refunds.request",
+       "label": "request refunds",
+       "limit": {
+         "amount": 10000,
+         "currency": "USD"
+       }
+     },
+     "aud": "supplier.example",
+     "subject": {
+       "type": "order",
+       "id": "A-1042"
+     },
+     "status": "https://pidgeon.ai/api/v1/grants/3c1e5b7a/status"
+   }
+
+   The compact JWS, whose signature verifies under the key above:
+
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 42]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
+
+   eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtpZCI6IjIw
+   MjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiw
+   ianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHEyTXg5S3A0UnQiLCJhZ2VudCI
+   6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJ
+   leHAiOjE3OTg3NjE2MDAsInYiOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InB
+   lcnNvbiIsImVtYWlsIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9
+   ieSI6ImVtYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJ
+   sYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI6MTAwMDA
+   sImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5leGFtcGxlIiwic3V
+   iamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkEtMTA0MiJ9LCJzdGF0dXMiOiJ
+   odHRwczovL3BpZGdlb24uYWkvYXBpL3YxL2dyYW50cy8zYzFlNWI3YS9zdGF0dXM
+   ifQ.wQfmO02Zpn9YEh5nJ9-TZkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ
+   5cANQsCmIAbrCnq-dKMQuVPlBg
+
+   The same grant as a folded Post-Grant field.  Removing the white
+   space gives the JWS back:
+
+   Post-Grant: eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtp
+    ZCI6IjIwMjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWN
+    tZS5leGFtcGxlIiwianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHE
+    yTXg5S3A0UnQiLCJhZ2VudCI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGF
+    tcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTg3NjE2MDAsInY
+    iOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InBlcnNvbiIsImVtYWl
+    sIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9ieSI6ImV
+    tYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJ
+    sYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI
+    6MTAwMDAsImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5
+    leGFtcGxlIiwic3ViamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkE
+    tMTA0MiJ9LCJzdGF0dXMiOiJodHRwczovL3BpZGdlb24uYWkvYXBpL3Y
+    xL2dyYW50cy8zYzFlNWI3YS9zdGF0dXMifQ.wQfmO02Zpn9YEh5nJ9-T
+    Zkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ5cANQsCmIAbrCnq-
+    dKMQuVPlBg
+
+D.8.  A Signed Receipt
 
    Specified by this document, not yet emitted by any implementation.
    The receipt bytes:
@@ -1765,7 +2399,16 @@ D.6.  A Signed Receipt
    "kind":"delivered",
    "at":"2026-10-22T14:03:13Z"}
 
-   As carried (Section 5.4.2), with receipt and sig in base64url:
+   As carried (Section 6.4.2), with receipt and sig in base64url:
+
+
+
+
+
+de Castro Neuhaus          Expires 7 May 2027                  [Page 43]
+
+Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
+
 
    v: post0
    d: supplier.example
@@ -1783,21 +2426,9 @@ Open Questions
 
    This section is to be removed before publishing as an RFC.
 
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 32]
-
-Internet-Draft    Post: Signed Agent Identity for Mail     November 2026
-
-
    1.  The agent card (Section 3.5): a JWS where every other signed
-       object here is exact JSON bytes with a detached signature;
-       whether exp of a day is enough without revocation; and its well-
-       known path.
+       object here is exact JSON bytes with a detached signature; and
+       its well-known path.
 
    2.  Whether the receipt names the sending domain (this draft) or only
        the message id.
@@ -1830,19 +2461,4 @@ Author's Address
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-de Castro Neuhaus          Expires 7 May 2027                  [Page 33]
+de Castro Neuhaus          Expires 7 May 2027                  [Page 44]

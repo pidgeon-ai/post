@@ -384,9 +384,12 @@ policy-id   = 1*(ALPHA / DIGIT)
             <dt>address</dt>
             <dd>The address.</dd>
             <dt>kind</dt>
-            <dd>"agent" or "service". Never "person": a person's
-      address has no card, and a request for one is answered as for an
-      address that does not exist.</dd>
+            <dd>"agent" or "service". Never "person": a card says
+      software speaks from the address. An address only people have sent
+      from has no card, and a request for one is answered as for an
+      address that does not exist. An address that software has sent from,
+      declaring "agent", has a card of kind "agent" from its first such
+      message on, so the card a message names can always be fetched.</dd>
             <dt>on_behalf_of</dt>
             <dd>As in the declaration; omitted when there is
       nothing to say.</dd>
@@ -434,6 +437,332 @@ policy-id   = 1*(ALPHA / DIGIT)
     SMTP already says whether it exists and its mail says the rest; the
     implementation rate-limits the lookup per client address.</t>
         </section>
+        <section anchor="card-revocation">
+          <name>Revocation</name>
+          <t>An issuer revokes a card by withdrawing it: from then on a request for
+    the card, by its URL or by address, is answered as for an address that
+    does not exist (HTTP 404), and the card log records a "revoked" entry
+    for its sub (<xref target="card-log"/>). Revocation cannot be undone,
+    and an issuer MUST NOT reuse a revoked card's sub. A host issuing for
+    accounts (<xref target="card-format"/>) MUST NOT issue a card for a
+    revoked card's address again, to anybody: a receiver that trusted the
+    address would otherwise extend that trust to whoever holds it next. A
+    domain issuing for its own addresses (<xref target="card-issuance"/>)
+    SHOULD NOT; if it does, the card has a new sub and the log a new
+    subject, so a receiver keyed on sub sees a stranger.</t>
+          <t>A receiver holding a copy may believe it until its exp, at most a day
+    in the implementation. A receiver acting on a card for something that
+    matters SHOULD fetch it afresh or check the log's head, rather than rely
+    on a copy. Suspending an address is not revocation: its card stays, with
+    reputation standing "restricted".</t>
+        </section>
+        <section anchor="card-issuance">
+          <name>Issuance for a Domain the Host Does Not Hold</name>
+          <t>A host can issue cards for addresses on any domain, with no account,
+    in the way ACME's DNS challenge <xref target="RFC8555"/> issues
+    certificates. The operator of the domain holds the signing key; the
+    host holds only its public half and signs the cards.</t>
+          <ol>
+      <li>The operator makes an Ed25519 key. Its key id, wherever this
+      document uses one for it (the policy's kid, the envelope's k, an HTTP
+      signature's keyid), is its JWK thumbprint <xref target="RFC8037"/>,
+      base64url-encoded.</li>
+            <li>The operator claims the domain at the host, naming the public key,
+      in a request signed by that key (<xref target="http-requests"/>, with
+      the tag "pidgeon-id"). The host answers with the record that proves
+      the claim: the domain's post TXT record
+      (<xref target="disc-txt"/>) with an id that is the first 16 hexadecimal
+      digits of SHA-256 over the UTF-8 string "post id claim", a NUL, the
+      domain, a NUL and the key id.</li>
+            <li>Once that record is published, the domain is the key's. A claim
+      made by anyone else, before or after, names another key and so another
+      id, and never proves. Proving the domain again with a new key replaces
+      the old key and every card issued under it.</li>
+            <li>The operator registers addresses at the domain, in requests signed
+      by the domain's key. Each gets a card (<xref target="card-format"/>)
+      whose iss is the host's domain, whose operator is the proved domain
+      with verified true, and whose keys name the operator's key. The host
+      signs it on each fetch, valid for a day, while the record stands, so a
+      card renews itself and lapses when the record is removed.</li>
+            <li>The host serves the domain's policy, from the operator's public
+      keys, at <tt>https://post.&lt;domain&gt;</tt> once the operator
+      points that name at it. The policy carries no endpoint.</li>
+          </ol>
+          <t>The operator's key signs the address's envelopes
+    (<xref target="envelope"/>) and HTTP requests
+    (<xref target="http-requests"/>). A receiver verifies them against the
+    domain's policy, as for any domain.</t>
+        </section>
+        <section anchor="http-requests">
+          <name>Agent Requests over HTTP</name>
+          <t>An agent signs an HTTP request with HTTP Message Signatures
+    <xref target="RFC9421"/> in the profile of
+    <xref target="I-D.ietf-webbotauth-httpsig-protocol"/>, so that a
+    receiver that checks Web Bot Auth signatures needs nothing new. The
+    implementation signs with alg "ed25519", tag "web-bot-auth", keyid the
+    key's JWK thumbprint, and a validity of five minutes. It covers @method,
+    @authority, @path, @query when there is one, Signature-Agent, From, and
+    Content-Digest <xref target="RFC9530"/> when there is a body.</t>
+          <ul>
+            <li>Signature-Agent is <tt>"https://post.&lt;domain&gt;"</tt>,
+      sent as a bare String, the form deployed verifiers read today; a
+      receiver also accepts the Dictionary form the profile asks signers
+      for.</li>
+            <li>From is the agent's address. A receiver treats it as the sender
+      only when it is at the domain whose key verified the signature.</li>
+            <li>The domain's key directory, at
+      <tt>https://post.&lt;domain&gt;/.well-known/http-message-signatures-directory</tt>,
+      lists the same keys as its policy, as a JWK Set whose kids are their
+      thumbprints. The implementation does not sign the directory response,
+      since the host does not hold the keys.</li>
+          </ul>
+          <t>A call to an MCP server over its HTTP transport is an HTTP request, and
+    is signed the same way.</t>
+          <t>Post does not replace Web Bot Auth; it is one more way to find out
+    who holds the key. A Web Bot Auth verifier checks a Post agent's
+    request with nothing new: same profile, same key directory, same keyid.
+    What Post adds sits beside the signature, not in it:</t>
+          <ul>
+            <li>An address. The covered From names one agent among many under one
+      key, where Web Bot Auth names an operator.</li>
+            <li>The agent card (<xref target="card"/>), found from that address:
+      kind (agent or service), on_behalf_of, a verified operator domain, and
+      a coarse standing.</li>
+            <li>One key for mail and HTTP. The envelope's k and the request's
+      keyid are the same thumbprint, published in the policy and the key
+      directory alike.</li>
+          </ul>
+          <t>A grant (<xref target="grants"/>) rides beside the signature in a
+    Post-Grant field, which the signature covers like From.</t>
+        </section>
+        <section anchor="a2a">
+          <name>A Card in an A2A Agent Card</name>
+          <t>An agent that publishes an A2A Agent Card <xref target="A2A"/> can
+    carry its Post identity in it with A2A's own mechanisms, so that an
+    A2A client needs nothing new and a Post-aware one can check it:</t>
+          <ul>
+            <li>An entry in capabilities.extensions with uri
+      <tt>https://pidgeon.ai/post/a2a/v0</tt>, required false, and params
+      address, kind, on_behalf_of (when there is one), operator (the
+      domain), card_url and card_jws (the card's compact JWS, which is the
+      authority; the other members are for reading).</li>
+            <li>An entry in signatures (A2A's AgentCardSignature): JWS JSON form
+      without the payload, over the RFC 8785 <xref target="RFC8785"/>
+      canonical form of the Agent Card without signatures, by the
+      operator's key. The protected header has alg "EdDSA", kid the key's
+      JWK thumbprint, and jku the domain's key directory
+      (<xref target="http-requests"/>), which is a JWK Set.</li>
+          </ul>
+          <t>The fields map as follows: the Post card's address and kind have
+    no A2A counterpart and travel in the extension; operator corresponds to
+    AgentProvider (organization, url), which A2A does not verify and the
+    card does; the A2A card's name, description, skills and interfaces have
+    no Post counterpart. A verifier checks the signature against the key
+    at jku, then the card_jws against its issuer's policy, then that the
+    card's address is at the domain whose key signed the A2A card.</t>
+          <t>A grant (<xref target="grants"/>) is not part of an A2A Agent Card,
+    which is public and names no customer. An A2A client sends it with the
+    task instead: in the message's metadata, under the extension's uri, as
+    <tt>{"grants": [&lt;compact JWS&gt;, ...]}</tt>.</t>
+        </section>
+        <section anchor="card-log">
+          <name>The Card Log</name>
+          <t>A host that issues cards automatically can issue one for anybody,
+    including a card that names somebody else. The card log makes every card
+    the host issues public, so the impersonated party can find it, in the
+    way Certificate Transparency <xref target="RFC9162"/> makes every
+    certificate public. It is an append-only Merkle tree whose heads the host
+    signs; anyone can check that a card is in it and that the log only ever
+    grew.</t>
+          <t>An entry records a change to a card subject, not a signed card, since
+    cards are re-signed daily (<xref target="card-format"/>). It is a JSON
+    object in its canonical form <xref target="RFC8785"/>, and its exact
+    bytes are what the tree hashes:</t>
+          <dl>
+            <dt>v</dt>
+            <dd>"post0-log".</dd>
+            <dt>event</dt>
+            <dd>"issued" (the subject has a card, for the first time
+      or again), "updated" (a logged member below changed), or "revoked" (it
+      has none).</dd>
+            <dt>time</dt>
+            <dd>When the log saw the change <xref target="RFC3339"/>,
+      to the second.</dd>
+            <dt>sub, address</dt>
+            <dd>As in the card. Every entry about one address
+      carries the same sub.</dd>
+            <dt>prev</dt>
+            <dd>The index of the subject's previous entry; omitted on
+      its first.</dd>
+            <dt>iss, kind, on_behalf_of, operator</dt>
+            <dd>As in the card; omitted
+      on "revoked".</dd>
+            <dt>keys</dt>
+            <dd>As in the card, except that a "post" key also carries
+      "pub", the public key in base64url, so a key replaced under the same
+      kid is a change the log shows. Omitted on "revoked".</dd>
+          </dl>
+          <t>The card's iat, exp, reputation, created_at and url are not logged:
+    they change by the day or never.</t>
+          <t>The tree is that of <xref target="RFC9162"/>, Section 2.1: a leaf hash
+    is SHA-256 of 0x00 and the entry's bytes, an interior node SHA-256 of
+    0x01 and its children, and inclusion and consistency proofs are built and
+    verified as Sections 2.1.3 and 2.1.4 say. The signed tree head is a
+    checkpoint <xref target="C2SP.checkpoint"/>: three lines (the log's
+    origin, its size in decimal, its root hash in base64) in a signed note
+    <xref target="C2SP.signed-note"/> with one Ed25519 signature
+    <xref target="RFC8032"/>, whose key name is the origin. The log's key is
+    the log's identity and never rotates; a client pins it as a signed-note
+    verifier key.</t>
+          <t>The implementation serves, with no credentials:</t>
+          <ul>
+            <li>
+              <tt>GET /v1/log/head</tt> and, as text, <tt>GET
+      /v1/log/checkpoint</tt>: the current checkpoint and verifier key.</li>
+            <li>
+              <tt>GET /v1/log/entries?start=&amp;end=</tt>: entries by index, each
+      with its exact bytes.</li>
+            <li>
+              <tt>GET /v1/log/proof?sub=</tt> (or <tt>index</tt> and
+      <tt>tree_size</tt>): an inclusion proof against a checkpoint.</li>
+            <li>
+              <tt>GET /v1/log/consistency?first=&amp;second=</tt>: a consistency
+      proof between two sizes.</li>
+          </ul>
+          <t>A verifier given a card and an inclusion proof hashes the entry's
+    bytes, checks that the entry's sub and claims are the card's, verifies
+    the checkpoint with the pinned key, and verifies the proof against its
+    root. The implementation's verifier returns that proof with its verdict.
+    A monitor keeps the last checkpoint it verified, asks for a consistency
+    proof each time the size grows, and reads the new entries; a card it did
+    not expect, for a name it watches, is the alarm. The log is reconciled
+    from the cards every five minutes, its maximum merge delay. The Card Log
+    vectors are in <xref target="vectors"/>.</t>
+        </section>
+      </section>
+    </section>
+    <section anchor="grants">
+      <name>Grants</name>
+      <t>Grants are newer than the card (implemented 4 November 2026) and the most
+  likely part of this document to change.</t>
+      <t>The card says who an agent is and for whom it acts. A grant says what it
+  may do: that a person or an organisation allowed this agent to act within
+  a named scope, for one customer, account or order, with one recipient,
+  until a time. A recipient that is about to act on an agent's request (a
+  support desk changing a booking, a vendor issuing a refund) checks the
+  grant before it acts.</t>
+      <section anchor="grant-format">
+        <name>Format and Signature</name>
+        <t>A grant is a JWS <xref target="RFC7515"/> in compact serialisation,
+    with protected header <tt>{"alg": "EdDSA", "typ": "agent-grant+jwt",
+    "kid": &lt;kid&gt;}</tt>, signed and verified as a card is
+    (<xref target="card-format"/>). The typ keeps a grant from being taken for
+    a card or another token signed by the same key. The payload:</t>
+        <dl>
+          <dt>iss</dt>
+          <dd>
+            <tt>https://post.&lt;issuer domain&gt;</tt>: the
+      host that saw the grantor agree. The implementation signs with the key
+      of the domain that signs the cards it issues itself.</dd>
+          <dt>jti</dt>
+          <dd>The grant's identifier, which the issuer never reuses.</dd>
+          <dt>sub</dt>
+          <dd>The agent's card sub (<xref target="card-format"/>).</dd>
+          <dt>agent</dt>
+          <dd>The agent's address.</dd>
+          <dt>iat, exp</dt>
+          <dd>Issued and expiry times, in seconds since the epoch.
+      The implementation lets the operator cap the term, at most 366 days.</dd>
+          <dt>v</dt>
+          <dd>"post0".</dd>
+          <dt>grantor</dt>
+          <dd>
+            <tt>{"type": "person", "email", "confirmed_by"}</tt>,
+      where confirmed_by is "email" (the person followed a link the issuer
+      sent to that address) or "session" (they were signed in to the issuer as
+      it); or <tt>{"type": "organisation", "domain", "confirmed_by":
+      "domain"}</tt>, a domain the issuer has verified, granted by an
+      administrator of the account that holds it.</dd>
+          <dt>scope</dt>
+          <dd>
+            <tt>{"name", "label", "limit"?}</tt>: name is stable,
+      for software ("bookings.manage"); label is what the grantor was shown
+      ("manage your bookings"); limit is <tt>{"amount", "currency"}</tt>, an
+      integer in the currency's minor units and an ISO 4217 code. Scopes are
+      the operator's; this document defines none.</dd>
+          <dt>aud</dt>
+          <dd>The domain the agent may act with. Omitted: any.</dd>
+          <dt>subject</dt>
+          <dd>
+            <tt>{"type", "id"}</tt>: type is "customer",
+      "account" or "order", and id is in the recipient's own terms.</dd>
+          <dt>status</dt>
+          <dd>An https URL at the issuer that answers whether the
+      grant still holds (<xref target="grant-checking"/>).</dd>
+        </dl>
+      </section>
+      <section anchor="grant-issuing">
+        <name>Issuing</name>
+        <t>The operator of an agent defines the scopes its agents may ask for.
+    The agent asks a person, by email address, for one scope, one subject
+    and a term; the issuer makes a pending request and a consent page, which
+    says, for example, "Acme's assistant wants to manage your bookings with
+    Delta until 31 December 2026". The person answers there. Holding the
+    page's address is not consent, since the operator holds it too: the
+    person allows the grant only after following a link the issuer sends to
+    the address asked, or while signed in to the issuer as that address.
+    Only then does the issuer sign. An organisation grants its own agents
+    directly. Either the grantor or the operator may revoke a grant at any
+    time, and a revoked grant is never restored.</t>
+      </section>
+      <section anchor="grant-carrying">
+        <name>Carrying a Grant</name>
+        <ul>
+          <li>In mail: a Post-Grant header field per grant, whose value is the
+      compact JWS. White space in the value is not part of it, so a sender
+      may break the value at any point to fold the field; a receiver removes
+      all white space.</li>
+          <li>In HTTP: a Post-Grant field, several grants separated by commas
+      (a JWS contains none), covered by the request's signature
+      (<xref target="http-requests"/>).</li>
+          <li>In an MCP call: under the key <tt>ai.pidgeon.post/grant</tt> in
+      the request's _meta, as a compact JWS or a list of them.</li>
+          <li>In A2A: in the message's metadata (<xref target="a2a"/>).</li>
+        </ul>
+        <t>A receiver reads at most five grants from one message or request.</t>
+      </section>
+      <section anchor="grant-checking">
+        <name>Checking a Grant</name>
+        <t>A grant on its own proves nothing about who presents it: it is a bearer
+    statement until it is bound to a signature. A receiver accepts a grant
+    only when all of the following hold, and reports the first that does
+    not:</t>
+        <ol>
+      <li>It is a grant: a compact JWS with this typ and every member
+      above ("malformed").</li>
+          <li>Its iss is an issuer the receiver checks grants from
+      ("unknown_issuer"), and the signature verifies under the key kid names
+      in that issuer's policy ("bad_signature").</li>
+          <li>The issuer holds it in force: given, not revoked ("revoked"), and
+      the same grant ("not_found"). A receiver that is not the issuer asks
+      the status URL, which answers <tt>{"object": "grant_status", "id",
+      "status", "expires_at", "revoked_at"}</tt> with status "active",
+      "revoked" or "expired", and 404 for a grant never given. The
+      implementation's verifier reads its own record on every check, and its
+      status URL is cached for at most thirty seconds, so a revocation is
+      seen within a minute.</li>
+          <li>exp is in the future ("expired").</li>
+          <li>A signature on the same message or request verifies as an address
+      (<xref target="verification"/>, <xref target="http-requests"/>)
+      ("sender_unverified"), and that address is the grant's agent, still
+      holding the grant's sub ("wrong_agent").</li>
+          <li>Where the receiver knows where it arrived (the recipient's address,
+      or the request's host), that is aud or under it ("wrong_audience").</li>
+          <li>Where the receiver knows which customer, account or order it is
+      about to act on, that is subject.id ("wrong_subject").</li>
+        </ol>
+        <t>A grant never changes the verdict on the sender; it is a separate
+    answer about what the sender may do.</t>
       </section>
     </section>
     <section anchor="verification">
@@ -746,6 +1075,16 @@ policy-id   = 1*(ALPHA / DIGIT)
           </tr>
           <tr>
             <td>
+              <tt>Post-Grant</tt></td>
+            <td>Header field, mail and HTTP (<xref target="grant-carrying"/>)</td>
+          </tr>
+          <tr>
+            <td>
+              <tt>ai.pidgeon.post/grant</tt></td>
+            <td>MCP _meta key (<xref target="grant-carrying"/>)</td>
+          </tr>
+          <tr>
+            <td>
               <tt>post0</tt></td>
             <td>Version string in every object and record</td>
           </tr>
@@ -786,7 +1125,16 @@ policy-id   = 1*(ALPHA / DIGIT)
   <xref target="disc-refetch"/>. The test vectors in
   <xref target="vectors"/> are produced from the running code.</t>
       <t>Pidgeon also runs a public checker for the declaration, which reports the
-  outcomes of <xref target="verify-declaration"/> for a pasted message.</t>
+  outcomes of <xref target="verify-declaration"/> for a pasted message, and
+  of <xref target="http-requests"/> for a signed request. It issues cards for
+  domains it does not host (<xref target="card-issuance"/>); the operator's
+  side is "@pidgeon-ai/id" (Apache-2.0), a command line and the signing
+  library, over the same post-core.</t>
+      <t>Grants (<xref target="grants"/>) are issued for addresses the
+  implementation hosts, through its consent page, and checked by the same
+  public checker; "@pidgeon-ai/id" carries them in mail and HTTP. It issues
+  none yet for domains it does not host, and does not check grants from
+  other issuers.</t>
       <t>Known limits of the implementation: its inbound path from ordinary
   email does not yet verify Post-Envelope fields from other domains (the
   remote fetch of <xref target="disc-refetch"/> exists but is not called
@@ -871,6 +1219,11 @@ policy-id   = 1*(ALPHA / DIGIT)
     systems that log header fields will log it.</li>
         <li>A read receipt reveals behaviour. It is off by default and opt-in per
     mailbox.</li>
+        <li>A grant names its grantor's email address and a customer, account
+    or order, and travels to the recipient named in aud, who already knows
+    both. The grantor sees that before agreeing. The status URL answers only
+    for a grant that was given, by an identifier only a holder of the grant
+    has, and says nothing of grantor, scope or subject.</li>
         <li>A policy fetch tells the sending domain's host that some receiver is
     checking its mail, and roughly when. Caching limits this to once per
     max_age per receiver.</li>
@@ -892,6 +1245,10 @@ policy-id   = 1*(ALPHA / DIGIT)
           <dt>Specification document:</dt>
           <dd>this document, <xref target="env-field"/></dd>
         </dl>
+        <t>and Post-Grant, with applicable protocol "mail", status provisional,
+    referring to <xref target="grant-carrying"/>; the same name in the
+    "Hypertext Transfer Protocol (HTTP) Field Name Registry"
+    <xref target="RFC9110"/>, status provisional;</t>
         <t>and AI-Disclosure, with applicable protocol "mail", status provisional,
     referring to <xref target="I-D.abaris-aicdh"/> for syntax and this document,
     <xref target="decl-fields"/>, for its use in mail. Agent-of and
@@ -1079,6 +1436,62 @@ policy-id   = 1*(ALPHA / DIGIT)
           <seriesInfo name="RFC" value="9989"/>
           <seriesInfo name="DOI" value="10.17487/RFC9989"/>
         </reference>
+        <reference anchor="RFC8037" target="https://www.rfc-editor.org/info/rfc8037" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8037.xml">
+          <front>
+            <title>CFRG Elliptic Curve Diffie-Hellman (ECDH) and Signatures in JSON Object Signing and Encryption (JOSE)</title>
+            <author fullname="I. Liusvaara" initials="I." surname="Liusvaara"/>
+            <date month="January" year="2017"/>
+            <abstract>
+              <t>This document defines how to use the Diffie-Hellman algorithms "X25519" and "X448" as well as the signature algorithms "Ed25519" and "Ed448" from the IRTF CFRG elliptic curves work in JSON Object Signing and Encryption (JOSE).</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8037"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8037"/>
+        </reference>
+        <reference anchor="RFC9421" target="https://www.rfc-editor.org/info/rfc9421" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9421.xml">
+          <front>
+            <title>HTTP Message Signatures</title>
+            <author fullname="A. Backman" initials="A." role="editor" surname="Backman"/>
+            <author fullname="J. Richer" initials="J." role="editor" surname="Richer"/>
+            <author fullname="M. Sporny" initials="M." surname="Sporny"/>
+            <date month="February" year="2024"/>
+            <abstract>
+              <t>This document describes a mechanism for creating, encoding, and verifying digital signatures or message authentication codes over components of an HTTP message. This mechanism supports use cases where the full HTTP message may not be known to the signer and where the message may be transformed (e.g., by intermediaries) before reaching the verifier. This document also describes a means for requesting that a signature be applied to a subsequent HTTP message in an ongoing HTTP exchange.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9421"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9421"/>
+        </reference>
+        <reference anchor="RFC9530" target="https://www.rfc-editor.org/info/rfc9530" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9530.xml">
+          <front>
+            <title>Digest Fields</title>
+            <author fullname="R. Polli" initials="R." surname="Polli"/>
+            <author fullname="L. Pardue" initials="L." surname="Pardue"/>
+            <date month="February" year="2024"/>
+            <abstract>
+              <t>This document defines HTTP fields that support integrity digests. The Content-Digest field can be used for the integrity of HTTP message content. The Repr-Digest field can be used for the integrity of HTTP representations. Want-Content-Digest and Want-Repr-Digest can be used to indicate a sender's interest and preferences for receiving the respective Integrity fields.</t>
+              <t>This document obsoletes RFC 3230 and the Digest and Want-Digest HTTP fields.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9530"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9530"/>
+        </reference>
+        <reference anchor="RFC9110" target="https://www.rfc-editor.org/info/rfc9110" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9110.xml">
+          <front>
+            <title>HTTP Semantics</title>
+            <author fullname="R. Fielding" initials="R." role="editor" surname="Fielding"/>
+            <author fullname="M. Nottingham" initials="M." role="editor" surname="Nottingham"/>
+            <author fullname="J. Reschke" initials="J." role="editor" surname="Reschke"/>
+            <date month="June" year="2022"/>
+            <abstract>
+              <t>The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information systems. This document describes the overall architecture of HTTP, establishes common terminology, and defines aspects of the protocol that are shared by all versions. In this definition are core protocol elements, extensibility mechanisms, and the "http" and "https" Uniform Resource Identifier (URI) schemes.</t>
+              <t>This document updates RFC 3864 and obsoletes RFCs 2818, 7231, 7232, 7233, 7235, 7538, 7615, 7694, and portions of 7230.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="STD" value="97"/>
+          <seriesInfo name="RFC" value="9110"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9110"/>
+        </reference>
         <reference anchor="I-D.chuang-agent-attribution-header-fields" target="https://datatracker.ietf.org/doc/draft-chuang-agent-attribution-header-fields/00/">
           <front>
             <title>Agent Attribution Header Fields</title>
@@ -1181,6 +1594,22 @@ policy-id   = 1*(ALPHA / DIGIT)
           <seriesInfo name="RFC" value="8461"/>
           <seriesInfo name="DOI" value="10.17487/RFC8461"/>
         </reference>
+        <reference anchor="RFC8693" target="https://www.rfc-editor.org/info/rfc8693" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8693.xml">
+          <front>
+            <title>OAuth 2.0 Token Exchange</title>
+            <author fullname="M. Jones" initials="M." surname="Jones"/>
+            <author fullname="A. Nadalin" initials="A." surname="Nadalin"/>
+            <author fullname="B. Campbell" initials="B." role="editor" surname="Campbell"/>
+            <author fullname="J. Bradley" initials="J." surname="Bradley"/>
+            <author fullname="C. Mortimore" initials="C." surname="Mortimore"/>
+            <date month="January" year="2020"/>
+            <abstract>
+              <t>This specification defines a protocol for an HTTP- and JSON-based Security Token Service (STS) by defining how to request and obtain security tokens from OAuth 2.0 authorization servers, including security tokens employing impersonation and delegation.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8693"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8693"/>
+        </reference>
         <reference anchor="RFC8552" target="https://www.rfc-editor.org/info/rfc8552" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8552.xml">
           <front>
             <title>Scoped Interpretation of DNS Resource Records through "Underscored" Naming of Attribute Leaves</title>
@@ -1240,6 +1669,89 @@ policy-id   = 1*(ALPHA / DIGIT)
           <seriesInfo name="RFC" value="8792"/>
           <seriesInfo name="DOI" value="10.17487/RFC8792"/>
         </reference>
+        <reference anchor="RFC8555" target="https://www.rfc-editor.org/info/rfc8555" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8555.xml">
+          <front>
+            <title>Automatic Certificate Management Environment (ACME)</title>
+            <author fullname="R. Barnes" initials="R." surname="Barnes"/>
+            <author fullname="J. Hoffman-Andrews" initials="J." surname="Hoffman-Andrews"/>
+            <author fullname="D. McCarney" initials="D." surname="McCarney"/>
+            <author fullname="J. Kasten" initials="J." surname="Kasten"/>
+            <date month="March" year="2019"/>
+            <abstract>
+              <t>Public Key Infrastructure using X.509 (PKIX) certificates are used for a number of purposes, the most significant of which is the authentication of domain names. Thus, certification authorities (CAs) in the Web PKI are trusted to verify that an applicant for a certificate legitimately represents the domain name(s) in the certificate. As of this writing, this verification is done through a collection of ad hoc mechanisms. This document describes a protocol that a CA and an applicant can use to automate the process of verification and certificate issuance. The protocol also provides facilities for other certificate management functions, such as certificate revocation.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8555"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8555"/>
+        </reference>
+        <reference anchor="RFC8785" target="https://www.rfc-editor.org/info/rfc8785" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.8785.xml">
+          <front>
+            <title>JSON Canonicalization Scheme (JCS)</title>
+            <author fullname="A. Rundgren" initials="A." surname="Rundgren"/>
+            <author fullname="B. Jordan" initials="B." surname="Jordan"/>
+            <author fullname="S. Erdtman" initials="S." surname="Erdtman"/>
+            <date month="June" year="2020"/>
+            <abstract>
+              <t>Cryptographic operations like hashing and signing need the data to be expressed in an invariant format so that the operations are reliably repeatable. One way to address this is to create a canonical representation of the data. Canonicalization also permits data to be exchanged in its original form on the "wire" while cryptographic operations performed on the canonicalized counterpart of the data in the producer and consumer endpoints generate consistent results.</t>
+              <t>This document describes the JSON Canonicalization Scheme (JCS). This specification defines how to create a canonical representation of JSON data by building on the strict serialization methods for JSON primitives defined by ECMAScript, constraining JSON data to the Internet JSON (I-JSON) subset, and by using deterministic property sorting.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="8785"/>
+          <seriesInfo name="DOI" value="10.17487/RFC8785"/>
+        </reference>
+        <reference anchor="A2A" target="https://a2a-protocol.org/latest/specification/">
+          <front>
+            <title>Agent2Agent (A2A) Protocol Specification, version 1.0.0</title>
+            <author>
+              <organization>A2A Project, Linux Foundation</organization>
+            </author>
+            <date year="2026"/>
+          </front>
+        </reference>
+        <reference anchor="I-D.ietf-webbotauth-httpsig-protocol" target="https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/01/">
+          <front>
+            <title>HTTP Message Signatures for Automated Traffic</title>
+            <author initials="T." surname="Meunier" fullname="Thibault Meunier">
+              <organization>Cloudflare</organization>
+            </author>
+            <date year="2026" month="October" day="29"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-ietf-webbotauth-httpsig-protocol-01"/>
+        </reference>
+        <reference anchor="RFC9162" target="https://www.rfc-editor.org/info/rfc9162" xml:base="https://bib.ietf.org/public/rfc/bibxml/reference.RFC.9162.xml">
+          <front>
+            <title>Certificate Transparency Version 2.0</title>
+            <author fullname="B. Laurie" initials="B." surname="Laurie"/>
+            <author fullname="E. Messeri" initials="E." surname="Messeri"/>
+            <author fullname="R. Stradling" initials="R." surname="Stradling"/>
+            <date month="December" year="2021"/>
+            <abstract>
+              <t>This document describes version 2.0 of the Certificate Transparency (CT) protocol for publicly logging the existence of Transport Layer Security (TLS) server certificates as they are issued or observed, in a manner that allows anyone to audit certification authority (CA) activity and notice the issuance of suspect certificates as well as to audit the certificate logs themselves. The intent is that eventually clients would refuse to honor certificates that do not appear in a log, effectively forcing CAs to add all issued certificates to the logs.</t>
+              <t>This document obsoletes RFC 6962. It also specifies a new TLS extension that is used to send various CT log artifacts.</t>
+              <t>Logs are network services that implement the protocol operations for submissions and queries that are defined in this document.</t>
+            </abstract>
+          </front>
+          <seriesInfo name="RFC" value="9162"/>
+          <seriesInfo name="DOI" value="10.17487/RFC9162"/>
+        </reference>
+        <reference anchor="C2SP.checkpoint" target="https://c2sp.org/tlog-checkpoint">
+          <front>
+            <title>Transparency Log Checkpoints</title>
+            <author>
+              <organization>C2SP</organization>
+            </author>
+            <date year="2026"/>
+          </front>
+        </reference>
+        <reference anchor="C2SP.signed-note" target="https://c2sp.org/signed-note">
+          <front>
+            <title>Note Signatures</title>
+            <author>
+              <organization>C2SP</organization>
+            </author>
+            <date year="2026"/>
+          </front>
+        </reference>
         <reference anchor="I-D.ietf-wimse-arch" target="https://datatracker.ietf.org/doc/draft-ietf-wimse-arch/08/">
           <front>
             <title>Workload Identity in a Multi System Environment (WIMSE) Architecture</title>
@@ -1286,12 +1798,14 @@ policy-id   = 1*(ALPHA / DIGIT)
       recipient before it reports delivered, and an "accepted" receipt.</li>
         <li>
           <strong>Signing in with an address.</strong> The policy's
-      identity.issuer as an OpenID Connect issuer for the domain's addresses
-      (running at Pidgeon; to be specified separately).</li>
+      identity.issuer as an OpenID Connect issuer for the domain's addresses,
+      including OAuth token exchange <xref target="RFC8693"/> in which the
+      token names the person as sub and the agent as act (running at
+      Pidgeon; to be specified separately).</li>
         <li>
           <strong>The agent card</strong>, final (<xref target="card"/>):
-      revocation, and cards for agents on hosts other than the
-      implementation's; and a public verification API.</li>
+      cards for agents on hosts other than the implementation's, and a public
+      verification API.</li>
         <li>
           <strong>A second DKIM signature</strong> over the declaration from the
       customer's own domain.</li>
@@ -1578,6 +2092,143 @@ N4lIld9VfhvWW-fi7bBP_c-mcNLw0i0bDw
 </sourcecode>
       </section>
       <section>
+        <name>The Card Log</name>
+        <t>A log whose origin is log.example/cards, its key's seed (hex):</t>
+        <sourcecode>
+404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f
+</sourcecode>
+        <t>Its verifier key:</t>
+        <sourcecode>
+log.example/cards+399d3d39+ASVDuS/xCVURR2rcg2nbbdyTNmWhGXjdoUBO4
+QZsqVWd
+</sourcecode>
+        <t>Three entries about the card above: issued, renamed, revoked. Each is shown as its exact bytes, then its leaf hash in hex:</t>
+        <sourcecode>
+0:
+  {"address":"billing-agent@acme.example","event":"issued","iss":"
+  https://post.acme.example","keys":[{"domain":"acme.example","kid
+  ":"2026-10-22.1","pub":"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJV
+  Mbg","type":"post"},{"domain":"pidgeon.email","selector":"spec-v
+  ector","type":"dkim"}],"kind":"agent","on_behalf_of":"Acme Ltd",
+  "operator":{"domain":"acme.example","verified":true},"sub":"id_7
+  Hq2Mx9Kp4Rt","time":"2026-09-01T09:00:00Z","v":"post0-log"}
+leaf:
+  1580e8ead3f636bd151354f81e01ddb75d954d2563d1623752d9b488c1cb7aae
+
+1:
+  {"address":"billing-agent@acme.example","event":"updated","iss":
+  "https://post.acme.example","keys":[{"domain":"acme.example","ki
+  d":"2026-10-22.1","pub":"A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJ
+  VMbg","type":"post"},{"domain":"pidgeon.email","selector":"spec-
+  vector","type":"dkim"}],"kind":"agent","on_behalf_of":"Acme Grou
+  p","operator":{"domain":"acme.example","verified":true},"prev":0
+  ,"sub":"id_7Hq2Mx9Kp4Rt","time":"2026-10-22T14:00:00Z","v":"post
+  0-log"}
+leaf:
+  e25b4a237b11c2231e7011bd6f08dc47c4874cdb8036289216de6acd5fb35134
+
+2:
+  {"address":"billing-agent@acme.example","event":"revoked","prev"
+  :1,"sub":"id_7Hq2Mx9Kp4Rt","time":"2026-11-04T08:00:00Z","v":"po
+  st0-log"}
+leaf:
+  7d007019c0b4116da40cbf19d0d8024748f2a5e3199f767a9856c30e8651da2f
+</sourcecode>
+        <t>The tree heads at sizes 1, 2 and 3, in hex:</t>
+        <sourcecode>
+1580e8ead3f636bd151354f81e01ddb75d954d2563d1623752d9b488c1cb7aae
+745231431f9fab8550cea68ed6f0bada9d9dcf065175e8be7d2d844999751bab
+7d25bb3b1fde0f1421c2feef142217005a49efd7fc93f734dc0df252c125418f
+</sourcecode>
+        <t>The checkpoint at size 3, signed with the log's key. Its last line is wrapped as in <xref target="RFC8792"/>; the checkpoint ends with a line feed:</t>
+        <sourcecode>
+NOTE: '\' line wrapping per RFC 8792
+
+log.example/cards
+3
+fSW7Ox/eDxQhwv7vFCIXAFpJ79f8k/c03A3yUsElQY8=
+
+— log.example/cards OZ09Of730w5zXqo4Ft/XxUlpaaSkvXdcjvo1Wvgz22C\
+ubSPk1hWfURzEp2cJ5LhE25u7xw8gFyDmRVaYjrrHU7NAEAg=
+</sourcecode>
+        <t>The inclusion proof of entry 1 in the tree of 3, and the consistency proof from 2 to 3, base64:</t>
+        <sourcecode>
+inclusion (index 1, size 3):
+  FYDo6tP2Nr0VE1T4HgHdt12VTSVj0WI3Utm0iMHLeq4=
+  fQBwGcC0EW2kDL8Z0NgCR0jypeMZn3Z6mFbDDoZR2i8=
+consistency (2 to 3):
+  fQBwGcC0EW2kDL8Z0NgCR0jypeMZn3Z6mFbDDoZR2i8=
+</sourcecode>
+      </section>
+      <section>
+        <name>A Grant</name>
+        <t>A grant to the sending address (<xref target="grants"/>), signed here with the sending domain's key so that one key checks every vector; the implementation's grants are signed by the host. The payload:</t>
+        <sourcecode>
+{
+  "iss": "https://post.acme.example",
+  "jti": "3c1e5b7a",
+  "sub": "id_7Hq2Mx9Kp4Rt",
+  "agent": "billing-agent@acme.example",
+  "iat": 1792677791,
+  "exp": 1798761600,
+  "v": "post0",
+  "grantor": {
+    "type": "person",
+    "email": "jo@customer.example",
+    "confirmed_by": "email"
+  },
+  "scope": {
+    "name": "refunds.request",
+    "label": "request refunds",
+    "limit": {
+      "amount": 10000,
+      "currency": "USD"
+    }
+  },
+  "aud": "supplier.example",
+  "subject": {
+    "type": "order",
+    "id": "A-1042"
+  },
+  "status": "https://pidgeon.ai/api/v1/grants/3c1e5b7a/status"
+}
+</sourcecode>
+        <t>The compact JWS, whose signature verifies under the key above:</t>
+        <sourcecode>
+eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtpZCI6IjIw
+MjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWNtZS5leGFtcGxlIiw
+ianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHEyTXg5S3A0UnQiLCJhZ2VudCI
+6ImJpbGxpbmctYWdlbnRAYWNtZS5leGFtcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJ
+leHAiOjE3OTg3NjE2MDAsInYiOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InB
+lcnNvbiIsImVtYWlsIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9
+ieSI6ImVtYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJ
+sYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI6MTAwMDA
+sImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5leGFtcGxlIiwic3V
+iamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkEtMTA0MiJ9LCJzdGF0dXMiOiJ
+odHRwczovL3BpZGdlb24uYWkvYXBpL3YxL2dyYW50cy8zYzFlNWI3YS9zdGF0dXM
+ifQ.wQfmO02Zpn9YEh5nJ9-TZkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ
+5cANQsCmIAbrCnq-dKMQuVPlBg
+</sourcecode>
+        <t>The same grant as a folded Post-Grant field. Removing the white space gives the JWS back:</t>
+        <sourcecode>
+Post-Grant: eyJhbGciOiJFZERTQSIsInR5cCI6ImFnZW50LWdyYW50K2p3dCIsImtp
+ ZCI6IjIwMjYtMTAtMjIuMSJ9.eyJpc3MiOiJodHRwczovL3Bvc3QuYWN
+ tZS5leGFtcGxlIiwianRpIjoiM2MxZTViN2EiLCJzdWIiOiJpZF83SHE
+ yTXg5S3A0UnQiLCJhZ2VudCI6ImJpbGxpbmctYWdlbnRAYWNtZS5leGF
+ tcGxlIiwiaWF0IjoxNzkyNjc3NzkxLCJleHAiOjE3OTg3NjE2MDAsInY
+ iOiJwb3N0MCIsImdyYW50b3IiOnsidHlwZSI6InBlcnNvbiIsImVtYWl
+ sIjoiam9AY3VzdG9tZXIuZXhhbXBsZSIsImNvbmZpcm1lZF9ieSI6ImV
+ tYWlsIn0sInNjb3BlIjp7Im5hbWUiOiJyZWZ1bmRzLnJlcXVlc3QiLCJ
+ sYWJlbCI6InJlcXVlc3QgcmVmdW5kcyIsImxpbWl0Ijp7ImFtb3VudCI
+ 6MTAwMDAsImN1cnJlbmN5IjoiVVNEIn19LCJhdWQiOiJzdXBwbGllci5
+ leGFtcGxlIiwic3ViamVjdCI6eyJ0eXBlIjoib3JkZXIiLCJpZCI6IkE
+ tMTA0MiJ9LCJzdGF0dXMiOiJodHRwczovL3BpZGdlb24uYWkvYXBpL3Y
+ xL2dyYW50cy8zYzFlNWI3YS9zdGF0dXMifQ.wQfmO02Zpn9YEh5nJ9-T
+ Zkp_pzef7Y2UdsJv3sadnVrNHaA9RyqkjO6CNKLJ5cANQsCmIAbrCnq-
+ dKMQuVPlBg
+</sourcecode>
+      </section>
+      <section>
         <name>A Signed Receipt</name>
         <t>Specified by this document, not yet emitted by any implementation. The receipt bytes:</t>
         <sourcecode>
@@ -1608,9 +2259,8 @@ sig:
       <name>Open Questions</name>
       <ol>
       <li>The agent card (<xref target="card"/>): a JWS where every other
-      signed object here is exact JSON bytes with a detached signature;
-      whether exp of a day is enough without revocation; and its well-known
-      path.</li>
+      signed object here is exact JSON bytes with a detached signature; and
+      its well-known path.</li>
         <li>Whether the receipt names the sending domain (this draft) or only
       the message id.</li>
         <li>Whether AI-Disclosure should be used in mail while its draft is
